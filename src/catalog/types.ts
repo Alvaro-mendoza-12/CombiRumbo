@@ -1,0 +1,132 @@
+/**
+ * Modelo de datos del catálogo de recorridos verificados.
+ * Basado en 06-arquitectura/arquitectura.md y PROMPT_MAESTRO_KIRO.md.
+ * Cada recorrido y paradero se asocia a una ciudad identificada (cityId).
+ * Ningún campo opcional se rellena por inferencia.
+ */
+
+export type SegmentStatus = 'verified' | 'aging' | 'unverified' | 'retired';
+
+export type SourceType =
+  | 'field-observation'
+  | 'document'
+  | 'community-report'
+  | 'osm';
+
+export type ReportKind =
+  | 'unit-passed'
+  | 'unit-absent'
+  | 'stop-changed'
+  | 'other';
+
+/** Configuración de una ciudad soportada o piloto. */
+export interface CityConfig {
+  id: string;
+  name: string;
+  country: string;
+  boundingCenter: [number, number];
+  bounds: {
+    minLat: number;
+    maxLat: number;
+    minLon: number;
+    maxLon: number;
+  };
+  pilotStatus: 'active-pilot' | 'planned' | 'unsupported';
+}
+
+/** Ruta/línea de transporte verificada en campo. */
+export interface Route {
+  id: string;
+  /** Identificador de ciudad a la que pertenece la ruta. */
+  cityId: string;
+  /** Etiqueta que los pasajeros usan para identificar la unidad. */
+  label: string;
+  direction?: string;
+  operatorName?: string;
+  status: SegmentStatus;
+  sourceId: string;
+  /** Fecha de verificación en ISO 8601. */
+  verifiedAt: string;
+  /** Fecha límite de revisión; tras ella el segmento pasa a 'aging'. */
+  reviewAfter: string;
+}
+
+/** Paradero o punto de referencia público. */
+export interface Stop {
+  id: string;
+  /** Identificador de ciudad a la que pertenece el paradero. */
+  cityId: string;
+  publicName: string;
+  lat: number;
+  lon: number;
+  sourceId: string;
+  verifiedAt: string;
+}
+
+/** Tramo entre dos paraderos sobre una ruta verificada. */
+export interface Segment {
+  id: string;
+  routeId: string;
+  fromStopId: string;
+  toStopId: string;
+  /** Secuencia de puntos [lat, lon] del recorrido observado. */
+  geometry?: [number, number][];
+  boardingNote?: string;
+  alightingNote?: string;
+  /** Solo si fue observada y confirmada en campo. */
+  fare?: number;
+  fareUnit?: string;
+  sourceId: string;
+  evidenceMethod: string;
+  status: SegmentStatus;
+  observedAt: string;
+}
+
+/** Procedencia y trazabilidad de un dato del catálogo. */
+export interface Source {
+  id: string;
+  type: SourceType;
+  title: string;
+  url?: string;
+  license?: string;
+  observedAt: string;
+  notes?: string;
+}
+
+/** Reporte temporal de un pasajero. Nunca modifica el catálogo verificado. */
+export interface LiveReport {
+  id: string;
+  routeId: string;
+  stopId?: string;
+  kind: ReportKind;
+  /** ISO 8601 del instante de creación. */
+  createdAt: string;
+  /** ISO 8601 del instante de caducidad. */
+  expiresAt: string;
+  /** Conteo agregado por bucket; sin identificadores personales. */
+  countBucket: number;
+}
+
+/** Catálogo completo cargado desde JSON. */
+export interface Catalog {
+  schemaVersion: number;
+  cityId: string;
+  cityName: string;
+  lastUpdated: string | null;
+  routes: Route[];
+  stops: Stop[];
+  segments: Segment[];
+  sources: Source[];
+}
+
+/** Catálogo vacío intencional para Chiclayo. Es un estado válido del producto. */
+export const EMPTY_CATALOG: Catalog = {
+  schemaVersion: 1,
+  cityId: 'chiclayo',
+  cityName: 'Chiclayo',
+  lastUpdated: null,
+  routes: [],
+  stops: [],
+  segments: [],
+  sources: [],
+};

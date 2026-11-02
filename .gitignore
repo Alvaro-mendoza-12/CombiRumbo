@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vercel/
+.env
+.env.*
+!.env.example
+coverage/
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# Do not ignore .kiro; the hackathon requires these project files in the GitHub repo.
