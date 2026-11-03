@@ -19,6 +19,15 @@ export type ReportKind =
   | 'stop-changed'
   | 'other';
 
+export type LandmarkCategory =
+  | 'center'
+  | 'university'
+  | 'market'
+  | 'health'
+  | 'beach'
+  | 'transit-hub'
+  | 'general';
+
 /** Configuración de una ciudad soportada o piloto. */
 export interface CityConfig {
   id: string;
@@ -43,6 +52,14 @@ export interface Route {
   label: string;
   direction?: string;
   operatorName?: string;
+  /** Tipo de vehículo observado (ej. 'combi', 'microbus'). */
+  vehicleType?: string;
+  /** Letrero visible en parabrisas para reconocer la unidad. */
+  vehicleSign?: string;
+  /** Color/diseño exterior característico de la unidad. */
+  vehicleColor?: string;
+  /** Color distintivo en interfaz para graficar la ruta. */
+  routeColor?: string;
   status: SegmentStatus;
   sourceId: string;
   /** Fecha de verificación en ISO 8601. */
@@ -57,6 +74,10 @@ export interface Stop {
   /** Identificador de ciudad a la que pertenece el paradero. */
   cityId: string;
   publicName: string;
+  /** Contexto físico para ubicar el paradero (ej. 'frente al banco', 'esquina noroeste'). */
+  landmarkContext?: string;
+  /** Categoría temática para agrupar y facilitar selección. */
+  category?: LandmarkCategory;
   lat: number;
   lon: number;
   sourceId: string;
@@ -69,10 +90,16 @@ export interface Segment {
   routeId: string;
   fromStopId: string;
   toStopId: string;
-  /** Secuencia de puntos [lat, lon] del recorrido observado. */
+  /** Secuencia de puntos [lat, lon] del recorrido observado (sigue las calles). */
   geometry?: [number, number][];
   boardingNote?: string;
+  /** Indicación para abordar la unidad o hacer señal al conductor. */
+  boardingCue?: string;
   alightingNote?: string;
+  /** Indicación para avisar la bajada al conductor/cobrador. */
+  alightingCue?: string;
+  /** Tiempo estimado a bordo en minutos según tráfico promedio observado. */
+  estimatedMinutes?: number;
   /** Solo si fue observada y confirmada en campo. */
   fare?: number;
   fareUnit?: string;
@@ -87,6 +114,7 @@ export interface Source {
   id: string;
   type: SourceType;
   title: string;
+  observerId?: string;
   url?: string;
   license?: string;
   observedAt: string;

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "cityId": "chiclayo",
   "cityName": "Chiclayo",
-  "lastUpdated": "2026-11-02T23:51:23.847Z",
+  "lastUpdated": "2026-11-03T01:15:31.518Z",
   "routes": [
     {
       "id": "CIX_PIMENTEL",
@@ -10,10 +10,29 @@
       "label": "Combi Chiclayo - Pimentel",
       "direction": "Ida a Pimentel",
       "operatorName": "Comité Interurbano Chiclayo - Pimentel",
+      "vehicleType": "Combi",
+      "vehicleSign": "CHICLAYO - PIMENTEL / USMP - UCV - MUELLE",
+      "vehicleColor": "Blanco con franja azul y naranja",
+      "routeColor": "#0284c7",
       "status": "verified",
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T08:30:00",
       "reviewAfter": "2026-12-01T13:30:00.000Z"
+    },
+    {
+      "id": "CIX_PIMENTEL_RET",
+      "cityId": "chiclayo",
+      "label": "Combi Chiclayo - Pimentel",
+      "direction": "Vuelta a Chiclayo",
+      "operatorName": "Comité Interurbano Chiclayo - Pimentel",
+      "vehicleType": "Combi",
+      "vehicleSign": "CHICLAYO - PIMENTEL / USMP - UCV - BOLOGNESI",
+      "vehicleColor": "Blanco con franja azul y naranja",
+      "routeColor": "#0284c7",
+      "status": "verified",
+      "sourceId": "src-OBS_CIX_PIM_02",
+      "verifiedAt": "2026-11-01T14:00:00",
+      "reviewAfter": "2026-12-01T19:00:00.000Z"
     },
     {
       "id": "CIX_LINEA_10",
@@ -21,89 +40,126 @@
       "label": "Línea 10 (Modelo)",
       "direction": "Norte a Sur",
       "operatorName": "Empresa de Transportes Modelo S.A.",
+      "vehicleType": "Microbús / Combi",
+      "vehicleSign": "LÍNEA 10 / MOSHOQUEQUE - BALTA - MERCEDES",
+      "vehicleColor": "Verde esmeralda con franja blanca",
+      "routeColor": "#10b981",
       "status": "verified",
       "sourceId": "src-OBS_CIX_L10_01",
       "verifiedAt": "2026-11-01T09:15:00",
       "reviewAfter": "2026-12-01T14:15:00.000Z"
+    },
+    {
+      "id": "CIX_LINEA_10_RET",
+      "cityId": "chiclayo",
+      "label": "Línea 10 (Modelo)",
+      "direction": "Sur a Norte",
+      "operatorName": "Empresa de Transportes Modelo S.A.",
+      "vehicleType": "Microbús / Combi",
+      "vehicleSign": "LÍNEA 10 / MERCEDES - BALTA - MOSHOQUEQUE",
+      "vehicleColor": "Verde esmeralda con franja blanca",
+      "routeColor": "#10b981",
+      "status": "verified",
+      "sourceId": "src-OBS_CIX_L10_02",
+      "verifiedAt": "2026-11-01T15:00:00",
+      "reviewAfter": "2026-12-01T20:00:00.000Z"
     }
   ],
   "stops": [
     {
-      "id": "stop-OBS_CIX_PIM_01-1",
+      "id": "stop-paradero-chiclayo-pimentel-av-bolognesi",
       "cityId": "chiclayo",
       "publicName": "Paradero Chiclayo - Pimentel (Av. Bolognesi)",
+      "landmarkContext": "Av. Bolognesi frente a Vicente de la Vega / Balta",
+      "category": "transit-hub",
       "lat": -6.7766,
       "lon": -79.8402,
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T08:30:00"
     },
     {
-      "id": "stop-OBS_CIX_PIM_01-2",
+      "id": "stop-ovalo-santa-victoria",
       "cityId": "chiclayo",
       "publicName": "Óvalo Santa Victoria",
+      "landmarkContext": "Intersección Av. Grau con Av. Chinchaysuyo (acera sur)",
+      "category": "transit-hub",
       "lat": -6.7825,
       "lon": -79.8441,
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T08:36:00"
     },
     {
-      "id": "stop-OBS_CIX_PIM_01-3",
+      "id": "stop-campus-usmp-filial-norte",
       "cityId": "chiclayo",
       "publicName": "Campus USMP Filial Norte",
+      "landmarkContext": "Km 3.5 Carretera a Pimentel (frente al puente peatonal)",
+      "category": "university",
       "lat": -6.8124,
       "lon": -79.8872,
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T08:48:00"
     },
     {
-      "id": "stop-OBS_CIX_PIM_01-4",
+      "id": "stop-campus-ucv-chiclayo",
       "cityId": "chiclayo",
       "publicName": "Campus UCV Chiclayo",
+      "landmarkContext": "Km 5 Carretera a Pimentel (paradero peatonal UCV)",
+      "category": "university",
       "lat": -6.8205,
       "lon": -79.9048,
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T08:54:00"
     },
     {
-      "id": "stop-OBS_CIX_PIM_01-5",
+      "id": "stop-muelle-historico-de-pimentel",
       "cityId": "chiclayo",
       "publicName": "Muelle Histórico de Pimentel",
+      "landmarkContext": "Malecón Grau frente a la playa y Muelle de Pimentel",
+      "category": "beach",
       "lat": -6.8355,
       "lon": -79.9344,
       "sourceId": "src-OBS_CIX_PIM_01",
       "verifiedAt": "2026-11-01T09:05:00"
     },
     {
-      "id": "stop-OBS_CIX_L10_01-1",
+      "id": "stop-mercado-moshoqueque-av-kennedy",
       "cityId": "chiclayo",
       "publicName": "Mercado Moshoqueque (Av. Kennedy)",
+      "landmarkContext": "Av. Kennedy con Av. Augusto B. Leguía (JLO)",
+      "category": "market",
       "lat": -6.7582,
       "lon": -79.8351,
       "sourceId": "src-OBS_CIX_L10_01",
       "verifiedAt": "2026-11-01T09:15:00"
     },
     {
-      "id": "stop-OBS_CIX_L10_01-2",
+      "id": "stop-mercado-modelo-av-balta-con-pedro-ruiz",
       "cityId": "chiclayo",
       "publicName": "Mercado Modelo (Av. Balta con Pedro Ruiz)",
+      "landmarkContext": "Intersección comercial concurrida sobre Av. Balta",
+      "category": "market",
       "lat": -6.7728,
       "lon": -79.8375,
       "sourceId": "src-OBS_CIX_L10_01",
       "verifiedAt": "2026-11-01T09:25:00"
     },
     {
-      "id": "stop-OBS_CIX_L10_01-3",
+      "id": "stop-parque-principal-de-chiclayo",
       "cityId": "chiclayo",
       "publicName": "Parque Principal de Chiclayo",
+      "landmarkContext": "Calle San José con Elías Aguirre frente a la Catedral",
+      "category": "center",
       "lat": -6.7715,
       "lon": -79.84,
       "sourceId": "src-OBS_CIX_L10_01",
       "verifiedAt": "2026-11-01T09:30:00"
     },
     {
-      "id": "stop-OBS_CIX_L10_01-4",
+      "id": "stop-hospital-docente-las-mercedes",
       "cityId": "chiclayo",
       "publicName": "Hospital Docente Las Mercedes",
+      "landmarkContext": "Av. Luis Gonzales con Av. Bolognesi",
+      "category": "health",
       "lat": -6.7758,
       "lon": -79.8447,
       "sourceId": "src-OBS_CIX_L10_01",
@@ -114,19 +170,30 @@
     {
       "id": "seg-OBS_CIX_PIM_01-0",
       "routeId": "CIX_PIMENTEL",
-      "fromStopId": "stop-OBS_CIX_PIM_01-1",
-      "toStopId": "stop-OBS_CIX_PIM_01-2",
+      "fromStopId": "stop-paradero-chiclayo-pimentel-av-bolognesi",
+      "toStopId": "stop-ovalo-santa-victoria",
       "geometry": [
         [
           -6.7766,
           -79.8402
         ],
         [
+          -6.777,
+          -79.841
+        ],
+        [
+          -6.7795,
+          -79.8425
+        ],
+        [
           -6.7825,
           -79.8441
         ]
       ],
-      "boardingNote": "Sube en Paradero Chiclayo - Pimentel (Av. Bolognesi)",
+      "boardingNote": "Abordar en: Av. Bolognesi frente a Vicente de la Vega / Balta",
+      "alightingNote": "Descenso en: Intersección Av. Grau con Av. Chinchaysuyo (acera sur)",
+      "alightingCue": "Baja en el Óvalo Santa Victoria",
+      "estimatedMinutes": 6,
       "fare": 2.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_PIM_01",
@@ -137,18 +204,38 @@
     {
       "id": "seg-OBS_CIX_PIM_01-1",
       "routeId": "CIX_PIMENTEL",
-      "fromStopId": "stop-OBS_CIX_PIM_01-2",
-      "toStopId": "stop-OBS_CIX_PIM_01-3",
+      "fromStopId": "stop-ovalo-santa-victoria",
+      "toStopId": "stop-campus-usmp-filial-norte",
       "geometry": [
         [
           -6.7825,
           -79.8441
         ],
         [
+          -6.786,
+          -79.8475
+        ],
+        [
+          -6.7925,
+          -79.856
+        ],
+        [
+          -6.801,
+          -79.869
+        ],
+        [
+          -6.808,
+          -79.88
+        ],
+        [
           -6.8124,
           -79.8872
         ]
       ],
+      "boardingNote": "Abordar en: Intersección Av. Grau con Av. Chinchaysuyo (acera sur)",
+      "alightingNote": "Descenso en: Km 3.5 Carretera a Pimentel (frente al puente peatonal)",
+      "alightingCue": "Avisa: 'Baja en la puerta de la San Martín'",
+      "estimatedMinutes": 12,
       "fare": 2.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_PIM_01",
@@ -159,18 +246,26 @@
     {
       "id": "seg-OBS_CIX_PIM_01-2",
       "routeId": "CIX_PIMENTEL",
-      "fromStopId": "stop-OBS_CIX_PIM_01-3",
-      "toStopId": "stop-OBS_CIX_PIM_01-4",
+      "fromStopId": "stop-campus-usmp-filial-norte",
+      "toStopId": "stop-campus-ucv-chiclayo",
       "geometry": [
         [
           -6.8124,
           -79.8872
         ],
         [
+          -6.816,
+          -79.896
+        ],
+        [
           -6.8205,
           -79.9048
         ]
       ],
+      "boardingNote": "Abordar en: Km 3.5 Carretera a Pimentel (frente al puente peatonal)",
+      "alightingNote": "Descenso en: Km 5 Carretera a Pimentel (paradero peatonal UCV)",
+      "alightingCue": "Avisa: 'Baja en la Vallejo'",
+      "estimatedMinutes": 6,
       "fare": 2.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_PIM_01",
@@ -181,19 +276,34 @@
     {
       "id": "seg-OBS_CIX_PIM_01-3",
       "routeId": "CIX_PIMENTEL",
-      "fromStopId": "stop-OBS_CIX_PIM_01-4",
-      "toStopId": "stop-OBS_CIX_PIM_01-5",
+      "fromStopId": "stop-campus-ucv-chiclayo",
+      "toStopId": "stop-muelle-historico-de-pimentel",
       "geometry": [
         [
           -6.8205,
           -79.9048
         ],
         [
+          -6.826,
+          -79.917
+        ],
+        [
+          -6.8312,
+          -79.927
+        ],
+        [
+          -6.8335,
+          -79.9315
+        ],
+        [
           -6.8355,
           -79.9344
         ]
       ],
-      "alightingNote": "Baja en Muelle Histórico de Pimentel",
+      "boardingNote": "Abordar en: Km 5 Carretera a Pimentel (paradero peatonal UCV)",
+      "alightingNote": "Descenso en: Malecón Grau frente a la playa y Muelle de Pimentel",
+      "alightingCue": "Bajar en el Muelle de Pimentel",
+      "estimatedMinutes": 11,
       "fare": 2.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_PIM_01",
@@ -202,21 +312,176 @@
       "observedAt": "2026-11-01T08:30:00"
     },
     {
+      "id": "seg-OBS_CIX_PIM_02-0",
+      "routeId": "CIX_PIMENTEL_RET",
+      "fromStopId": "stop-muelle-historico-de-pimentel",
+      "toStopId": "stop-campus-ucv-chiclayo",
+      "geometry": [
+        [
+          -6.8355,
+          -79.9344
+        ],
+        [
+          -6.8335,
+          -79.9315
+        ],
+        [
+          -6.8312,
+          -79.927
+        ],
+        [
+          -6.826,
+          -79.917
+        ],
+        [
+          -6.8205,
+          -79.9048
+        ]
+      ],
+      "boardingNote": "Abordar en: Malecón Grau con Calle Quiñones",
+      "alightingNote": "Descenso en: Km 5 Carretera a Pimentel acera hacia Chiclayo",
+      "alightingCue": "Avisa: 'Baja en la Vallejo'",
+      "estimatedMinutes": 11,
+      "fare": 2.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_PIM_02",
+      "evidenceMethod": "direct-travel-and-confirmation",
+      "status": "verified",
+      "observedAt": "2026-11-01T14:00:00"
+    },
+    {
+      "id": "seg-OBS_CIX_PIM_02-1",
+      "routeId": "CIX_PIMENTEL_RET",
+      "fromStopId": "stop-campus-ucv-chiclayo",
+      "toStopId": "stop-campus-usmp-filial-norte",
+      "geometry": [
+        [
+          -6.8205,
+          -79.9048
+        ],
+        [
+          -6.816,
+          -79.896
+        ],
+        [
+          -6.8124,
+          -79.8872
+        ]
+      ],
+      "boardingNote": "Abordar en: Km 5 Carretera a Pimentel acera hacia Chiclayo",
+      "alightingNote": "Descenso en: Km 3.5 Carretera a Pimentel acera hacia Chiclayo",
+      "alightingCue": "Avisa: 'Baja en la San Martín'",
+      "estimatedMinutes": 6,
+      "fare": 2.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_PIM_02",
+      "evidenceMethod": "direct-travel-and-confirmation",
+      "status": "verified",
+      "observedAt": "2026-11-01T14:00:00"
+    },
+    {
+      "id": "seg-OBS_CIX_PIM_02-2",
+      "routeId": "CIX_PIMENTEL_RET",
+      "fromStopId": "stop-campus-usmp-filial-norte",
+      "toStopId": "stop-ovalo-santa-victoria",
+      "geometry": [
+        [
+          -6.8124,
+          -79.8872
+        ],
+        [
+          -6.808,
+          -79.88
+        ],
+        [
+          -6.801,
+          -79.869
+        ],
+        [
+          -6.7925,
+          -79.856
+        ],
+        [
+          -6.786,
+          -79.8475
+        ],
+        [
+          -6.7825,
+          -79.8441
+        ]
+      ],
+      "boardingNote": "Abordar en: Km 3.5 Carretera a Pimentel acera hacia Chiclayo",
+      "alightingNote": "Descenso en: Av. Víctor Raúl Haya de la Torre ingresando a Av. Grau",
+      "alightingCue": "Avisa: 'Baja en el Óvalo'",
+      "estimatedMinutes": 12,
+      "fare": 2.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_PIM_02",
+      "evidenceMethod": "direct-travel-and-confirmation",
+      "status": "verified",
+      "observedAt": "2026-11-01T14:00:00"
+    },
+    {
+      "id": "seg-OBS_CIX_PIM_02-3",
+      "routeId": "CIX_PIMENTEL_RET",
+      "fromStopId": "stop-ovalo-santa-victoria",
+      "toStopId": "stop-paradero-chiclayo-pimentel-av-bolognesi",
+      "geometry": [
+        [
+          -6.7825,
+          -79.8441
+        ],
+        [
+          -6.7795,
+          -79.8425
+        ],
+        [
+          -6.777,
+          -79.841
+        ],
+        [
+          -6.7766,
+          -79.8402
+        ]
+      ],
+      "boardingNote": "Abordar en: Av. Víctor Raúl Haya de la Torre ingresando a Av. Grau",
+      "alightingNote": "Descenso en: Av. Bolognesi entre Av. Balta y Sáenz Peña",
+      "alightingCue": "Bajar en Bolognesi Centro",
+      "estimatedMinutes": 6,
+      "fare": 2.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_PIM_02",
+      "evidenceMethod": "direct-travel-and-confirmation",
+      "status": "verified",
+      "observedAt": "2026-11-01T14:00:00"
+    },
+    {
       "id": "seg-OBS_CIX_L10_01-0",
       "routeId": "CIX_LINEA_10",
-      "fromStopId": "stop-OBS_CIX_L10_01-1",
-      "toStopId": "stop-OBS_CIX_L10_01-2",
+      "fromStopId": "stop-mercado-moshoqueque-av-kennedy",
+      "toStopId": "stop-mercado-modelo-av-balta-con-pedro-ruiz",
       "geometry": [
         [
           -6.7582,
           -79.8351
         ],
         [
+          -6.764,
+          -79.8362
+        ],
+        [
+          -6.769,
+          -79.837
+        ],
+        [
           -6.7728,
           -79.8375
         ]
       ],
-      "boardingNote": "Sube en Mercado Moshoqueque (Av. Kennedy)",
+      "boardingNote": "Abordar en: Av. Kennedy con Av. Augusto B. Leguía (JLO)",
+      "alightingNote": "Descenso en: Intersección comercial concurrida sobre Av. Balta",
+      "alightingCue": "Avisa: 'Baja en Mercado Modelo'",
+      "estimatedMinutes": 10,
       "fare": 1.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_L10_01",
@@ -227,18 +492,26 @@
     {
       "id": "seg-OBS_CIX_L10_01-1",
       "routeId": "CIX_LINEA_10",
-      "fromStopId": "stop-OBS_CIX_L10_01-2",
-      "toStopId": "stop-OBS_CIX_L10_01-3",
+      "fromStopId": "stop-mercado-modelo-av-balta-con-pedro-ruiz",
+      "toStopId": "stop-parque-principal-de-chiclayo",
       "geometry": [
         [
           -6.7728,
           -79.8375
         ],
         [
+          -6.772,
+          -79.839
+        ],
+        [
           -6.7715,
           -79.84
         ]
       ],
+      "boardingNote": "Abordar en: Intersección comercial concurrida sobre Av. Balta",
+      "alightingNote": "Descenso en: Calle San José con Elías Aguirre frente a la Catedral",
+      "alightingCue": "Avisa: 'Baja en el Parque Principal'",
+      "estimatedMinutes": 5,
       "fare": 1.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_L10_01",
@@ -249,25 +522,126 @@
     {
       "id": "seg-OBS_CIX_L10_01-2",
       "routeId": "CIX_LINEA_10",
-      "fromStopId": "stop-OBS_CIX_L10_01-3",
-      "toStopId": "stop-OBS_CIX_L10_01-4",
+      "fromStopId": "stop-parque-principal-de-chiclayo",
+      "toStopId": "stop-hospital-docente-las-mercedes",
       "geometry": [
         [
           -6.7715,
           -79.84
         ],
         [
+          -6.774,
+          -79.8425
+        ],
+        [
           -6.7758,
           -79.8447
         ]
       ],
-      "alightingNote": "Baja en Hospital Docente Las Mercedes",
+      "boardingNote": "Abordar en: Calle San José con Elías Aguirre frente a la Catedral",
+      "alightingNote": "Descenso en: Av. Luis Gonzales con Av. Bolognesi",
+      "alightingCue": "Bajar en Hospital Las Mercedes",
+      "estimatedMinutes": 6,
       "fare": 1.5,
       "fareUnit": "S/",
       "sourceId": "src-OBS_CIX_L10_01",
       "evidenceMethod": "direct-travel",
       "status": "verified",
       "observedAt": "2026-11-01T09:15:00"
+    },
+    {
+      "id": "seg-OBS_CIX_L10_02-0",
+      "routeId": "CIX_LINEA_10_RET",
+      "fromStopId": "stop-hospital-docente-las-mercedes",
+      "toStopId": "stop-parque-principal-de-chiclayo",
+      "geometry": [
+        [
+          -6.7758,
+          -79.8447
+        ],
+        [
+          -6.774,
+          -79.8425
+        ],
+        [
+          -6.7715,
+          -79.84
+        ]
+      ],
+      "boardingNote": "Abordar en: Av. Luis Gonzales frente a emergencia",
+      "alightingNote": "Descenso en: Av. Balta con Vicente de la Vega / San José",
+      "alightingCue": "Avisa: 'Baja en el Parque Principal'",
+      "estimatedMinutes": 6,
+      "fare": 1.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_L10_02",
+      "evidenceMethod": "direct-travel",
+      "status": "verified",
+      "observedAt": "2026-11-01T15:00:00"
+    },
+    {
+      "id": "seg-OBS_CIX_L10_02-1",
+      "routeId": "CIX_LINEA_10_RET",
+      "fromStopId": "stop-parque-principal-de-chiclayo",
+      "toStopId": "stop-mercado-modelo-av-balta-con-pedro-ruiz",
+      "geometry": [
+        [
+          -6.7715,
+          -79.84
+        ],
+        [
+          -6.772,
+          -79.839
+        ],
+        [
+          -6.7728,
+          -79.8375
+        ]
+      ],
+      "boardingNote": "Abordar en: Av. Balta con Vicente de la Vega / San José",
+      "alightingNote": "Descenso en: Av. Balta frente a galerías comerciales",
+      "alightingCue": "Avisa: 'Baja en Mercado Modelo'",
+      "estimatedMinutes": 5,
+      "fare": 1.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_L10_02",
+      "evidenceMethod": "direct-travel",
+      "status": "verified",
+      "observedAt": "2026-11-01T15:00:00"
+    },
+    {
+      "id": "seg-OBS_CIX_L10_02-2",
+      "routeId": "CIX_LINEA_10_RET",
+      "fromStopId": "stop-mercado-modelo-av-balta-con-pedro-ruiz",
+      "toStopId": "stop-mercado-moshoqueque-av-kennedy",
+      "geometry": [
+        [
+          -6.7728,
+          -79.8375
+        ],
+        [
+          -6.769,
+          -79.837
+        ],
+        [
+          -6.764,
+          -79.8362
+        ],
+        [
+          -6.7582,
+          -79.8351
+        ]
+      ],
+      "boardingNote": "Abordar en: Av. Balta frente a galerías comerciales",
+      "alightingNote": "Descenso en: Av. Kennedy frente a plataforma de carga",
+      "alightingCue": "Bajar en Moshoqueque",
+      "estimatedMinutes": 10,
+      "fare": 1.5,
+      "fareUnit": "S/",
+      "sourceId": "src-OBS_CIX_L10_02",
+      "evidenceMethod": "direct-travel",
+      "status": "verified",
+      "observedAt": "2026-11-01T15:00:00"
     }
   ],
   "sources": [
@@ -280,11 +654,27 @@
       "notes": "Método: direct-travel-and-confirmation; observador: CIX_FIELD_01; confirmación: yes_passenger_corroborated"
     },
     {
+      "id": "src-OBS_CIX_PIM_02",
+      "type": "field-observation",
+      "title": "Observación de campo OBS_CIX_PIM_02 (Combi Chiclayo - Pimentel)",
+      "url": "https://www.gob.pe/institucion/munichiclayo",
+      "observedAt": "2026-11-01T14:00:00",
+      "notes": "Método: direct-travel-and-confirmation; observador: CIX_FIELD_01; confirmación: yes_passenger_corroborated"
+    },
+    {
       "id": "src-OBS_CIX_L10_01",
       "type": "field-observation",
       "title": "Observación de campo OBS_CIX_L10_01 (Línea 10 (Modelo))",
       "url": "https://www.gob.pe/institucion/munichiclayo",
       "observedAt": "2026-11-01T09:15:00",
+      "notes": "Método: direct-travel; observador: CIX_FIELD_01; confirmación: yes_passenger_corroborated"
+    },
+    {
+      "id": "src-OBS_CIX_L10_02",
+      "type": "field-observation",
+      "title": "Observación de campo OBS_CIX_L10_02 (Línea 10 (Modelo))",
+      "url": "https://www.gob.pe/institucion/munichiclayo",
+      "observedAt": "2026-11-01T15:00:00",
       "notes": "Método: direct-travel; observador: CIX_FIELD_01; confirmación: yes_passenger_corroborated"
     }
   ]

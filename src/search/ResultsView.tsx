@@ -1,7 +1,11 @@
 /**
- * Vista de resultados: lista de itinerarios en tarjetas.
- * Cada tarjeta muestra línea, subida, bajada, tarifa y fecha de verificación.
- * Los reportes de pasajeros van en una fila separada.
+ * Vista de resultados de CombiRumbo.
+ * Muestra las alternativas de viaje evaluadas por el algoritmo con:
+ * - Indicadores clave: tiempo total estimado, caminata, transbordos y costo.
+ * - Distinción de la opción recomendada (directa vs con transbordos).
+ * - Identificación del vehículo (tipo, letrero frontal en parabrisas).
+ * - Reportes comunitarios de pasajeros con caducidad en tiempo real.
+ * - Manejo honesto de casos sin cobertura (sin inventar rutas).
  */
 
 import { useMemo } from 'react';
@@ -35,12 +39,14 @@ export function ResultsView({
   onSelectItinerary,
   onNewSearch,
 }: ResultsViewProps) {
+  // Estado de catálogo vacío
   if (empty || state === 'empty-catalog') {
     return (
-      <div className="no-results" role="status" aria-live="polite">
+      <div className="no-results-card" role="status" aria-live="polite">
+        <div className="no-results-icon" aria-hidden="true">📋</div>
         <h2>{t('empty.title')}</h2>
         <p>{t('empty.body')}</p>
-        <div className="no-results-actions">
+        <div className="card-actions">
           <button className="btn-secondary" onClick={onNewSearch}>
             {t('norecord.changeDestination')}
           </button>
@@ -49,47 +55,57 @@ export function ResultsView({
     );
   }
 
-  if (state === 'no-results') {
+  // Estado sin resultados verificados
+  if (state === 'no-results' || results.length === 0) {
     return (
-      <div className="no-results" role="status" aria-live="polite">
+      <div className="no-results-card" role="status" aria-live="polite">
+        <div className="no-results-icon" aria-hidden="true">🔍</div>
         <h2>{t('norecord.title')}</h2>
         <p>{t('norecord.body')}</p>
-        <div className="no-results-actions">
-          <button className="btn-secondary" onClick={onNewSearch}>
+        <div className="card-actions">
+          <button className="btn-primary" onClick={onNewSearch}>
             {t('norecord.changeDestination')}
           </button>
         </div>
       </div>
     );
-  }
-
-  if (results.length === 0) {
-    return null;
   }
 
   return (
     <div>
       <div className="results-header">
-        <h2>
-          {results.length === 1
-            ? t('results.oneOption')
-            : t('results.manyOptions', { count: results.length })}
-        </h2>
-        <div className="ordering-note">
-          {t('results.ordering')}: {t('results.orderingTransfers')}
+        <div>
+          <h2>
+            {results.length === 1
+              ? t('results.oneOption')
+              : t('results.manyOptions', { count: results.length })}
+          </h2>
+          <div className="ordering-note">
+            {t('results.ordering')}: {t('results.orderingTransfers')}
+          </div>
         </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onNewSearch}
+          style={{ fontSize: '0.8rem', padding: '6px 10px', minHeight: '36px' }}
+        >
+          {t('norecord.changeDestination')}
+        </button>
       </div>
 
-      {results.map((itinerary) => (
-        <ResultCard
-          key={itinerary.id}
-          itinerary={itinerary}
-          lang={lang}
-          t={t}
-          onSelect={() => onSelectItinerary(itinerary.id)}
-          online={online}
-        />
-      ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {results.map((itinerary) => (
+          <ResultCard
+            key={itinerary.id}
+            itinerary={itinerary}
+            lang={lang}
+            t={t}
+            onSelect={() => onSelectItinerary(itinerary.id)}
+            online={online}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -107,94 +123,129 @@ function ResultCard({
   onSelect: () => void;
   online: boolean;
 }) {
-  const firstRide = itinerary.steps.find(s => s.type === 'ride');
-  const route = firstRide?.route;
-  const routeLabel = route?.label ?? '---';
+  const isWalkingOnly = itinerary.tags.includes('walking-only');
+  const isRecommended = itinerary.tags.includes('recommended');
+  const rideSteps = itinerary.steps.filter((s) => s.type === 'ride');
+  const firstRide = rideSteps[0];
+  const primaryRoute = firstRide?.route;
 
+  // Reportes comunitarios activos para la línea
   const reports: LiveReport[] = useMemo(() => {
-    if (!route) return [];
-    return getActiveReports(route.id);
-  }, [route]);
+    if (!primaryRoute) return [];
+    return getActiveReports(primaryRoute.id);
+  }, [primaryRoute]);
+
+  const originStop = itinerary.steps[0]?.fromStop;
+  const destStop = itinerary.steps[itinerary.steps.length - 1]?.toStop;
 
   return (
-    <article className="result-card" aria-label={`${t('results.take')} ${routeLabel}`}>
-      <h3>{t('results.take')} {routeLabel}</h3>
+    <article
+      className="result-card"
+      aria-label={
+        isWalkingOnly
+          ? t('results.walkingOnlyTitle')
+          : `${t('results.take')} ${primaryRoute?.label ?? 'Transporte'}`
+      }
+    >
+      {/* Fila superior: Título e Insignia Recomendada */}
+      <div className="card-top-row">
+        <div className="route-badge">
+          {isWalkingOnly ? (
+            <span>🚶 {t('results.walkingOnlyTitle')}</span>
+          ) : (
+            <>
+              <span aria-hidden="true">🚐</span>
+              <span>{primaryRoute?.label ?? 'Transporte Público'}</span>
+            </>
+          )}
+        </div>
 
-      {itinerary.steps.map((step, idx) => {
-        if (step.type === 'walk') {
-          return (
-            <div key={idx} className="step-row">
-              <span className="step-icon" aria-hidden="true">🚶</span>
-              <span className="step-label">
-                {t('results.walk')}
-                {step.fromStop && `: ${step.fromStop.publicName}`}
-                {step.toStop && ` → ${step.toStop.publicName}`}
-              </span>
-            </div>
-          );
-        }
+        {isRecommended && (
+          <span className="recommendation-badge">
+            ⭐ {t('results.directRoute')}
+          </span>
+        )}
+      </div>
 
-        return (
-          <div key={idx} className="step-row">
-            <span className="step-icon" aria-hidden="true">🚌</span>
-            <span className="step-label">
-              {idx === 0 || itinerary.steps.slice(0, idx).every(s => s.type === 'walk')
-                ? <><strong>{t('results.board')}</strong>{step.fromStop ? `: ${step.fromStop.publicName}` : ''}<br /></>
-                : null}
-              {step.route && <strong>{step.route.label}</strong>}
-              {step.toStop && ` → ${t('results.alight')}: ${step.toStop.publicName}`}
-            </span>
-          </div>
-        );
-      })}
+      {/* Letrero del vehículo (referencia visual fundamental en Chiclayo) */}
+      {!isWalkingOnly && primaryRoute?.vehicleSign && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="vehicle-sign-chip" title="Letrero frontal en parabrisas">
+            LETRERO: {primaryRoute.vehicleSign}
+          </span>
+        </div>
+      )}
 
-      {/* Tarifa */}
-      <div className="fare-row">
-        <span aria-hidden="true">💰</span>
-        <span aria-label={t('results.fare')}>
-          {itinerary.fare.confirmed && itinerary.fare.amount !== null
-            ? <span className="fare-confirmed">
-                {t('results.fare')}: {itinerary.fare.unit} {itinerary.fare.amount}
-              </span>
-            : <span className="fare-pending">{t('results.farePending')}</span>}
+      {/* Métricas clave: Duración, Tarifa, Caminata */}
+      <div className="metrics-pill-row">
+        <span className="metric-pill duration" title="Tiempo estimado total">
+          ⏱️ {itinerary.estimatedTotalMinutes} min
+        </span>
+
+        {!isWalkingOnly && (
+          <span className="metric-pill fare" title="Tarifa por persona">
+            💰 {itinerary.fare.confirmed && itinerary.fare.amount !== null
+              ? `${itinerary.fare.unit} ${itinerary.fare.amount.toFixed(2)}`
+              : t('results.farePending')}
+          </span>
+        )}
+
+        <span className="metric-pill walk" title="Caminata requerida">
+          🚶 {itinerary.totalWalkMinutes} min a pie ({itinerary.totalWalkMeters} m)
         </span>
       </div>
 
-      {/* Estado de verificación */}
-      <div className="step-row">
-        <span className="status-badge status-verified" role="img" aria-label={t('status.verified')}>
+      {/* Timeline resumen de subida y bajada */}
+      <div className="card-timeline">
+        {originStop && (
+          <div className="timeline-point">
+            <span className="point-icon" aria-hidden="true">🟢</span>
+            <span className="point-text">
+              {isWalkingOnly ? 'Desde: ' : `${t('results.board')}: `}
+              <strong>{originStop.publicName}</strong>
+            </span>
+          </div>
+        )}
+
+        {destStop && (
+          <div className="timeline-point">
+            <span className="point-icon" aria-hidden="true">🏁</span>
+            <span className="point-text">
+              {isWalkingOnly ? 'Hasta: ' : `${t('results.alight')}: `}
+              <strong>{destStop.publicName}</strong>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Verificación de datos de campo */}
+      <div className="source-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span className="status-badge status-verified">
           ✅ {t('status.verified')}
         </span>
-        <span className="source-row">
+        <span>
           {t('results.verified')}: {formatDate(itinerary.verificationDate, lang)}
         </span>
       </div>
 
-      {/* Reportes de pasajero (fila separada) */}
-      {online && route && reports.length > 0 && (
-        <div className="report-section" aria-live="polite">
-          <h4>{t('reports.reportedBy')}</h4>
-          {reports.map(r => (
-            <div key={r.id} className="report-row">
-              <span className="report-badge">
-                {r.countBucket} {t('reports.reportedBy')}
-              </span>
-              <span>{t('reports.minutesAgo', { count: Math.max(1, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 60000)) })}</span>
-              <span>· {t('reports.expiresIn', { count: minutesUntilExpiry(r) })}</span>
-            </div>
-          ))}
+      {/* Reportes de pasajeros de los últimos 20 minutos */}
+      {online && !isWalkingOnly && (
+        <div className="card-reports-summary">
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span className="report-indicator-dot" />
+            <span>
+              {reports.length > 0 && reports[0]
+                ? `${reports.length} ${t('reports.reportedBy')} (${t('reports.expiresIn', { count: minutesUntilExpiry(reports[0]) })})`
+                : t('reports.noReports')}
+            </span>
+          </div>
         </div>
       )}
 
-      {online && route && reports.length === 0 && (
-        <div className="report-section">
-          <h4>{t('reports.noReports')}</h4>
-        </div>
-      )}
-
-      <div className="result-actions">
-        <button className="btn-secondary" onClick={onSelect}>
-          {t('results.viewSteps')}
+      {/* Acciones */}
+      <div className="card-actions">
+        <button className="btn-primary" onClick={onSelect} style={{ flex: 1 }}>
+          {t('results.viewSteps')} →
         </button>
       </div>
     </article>

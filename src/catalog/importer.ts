@@ -178,13 +178,19 @@ export function importFromCsv(csvText: string, cityId: string = DEFAULT_CITY_ID)
         errors.push(`Punto en ${obsId} descartado: coordenadas inválidas.`);
         continue;
       }
-      const stopId = `stop-${obsId}-${row.point_sequence}`;
+      const canonicalId = 'stop-' + row.public_landmark.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      const stopId = canonicalId || `stop-${obsId}-${row.point_sequence}`;
       if (!stopMap.has(stopId)) {
         const verifiedAt = row.observed_at_local || first.observed_at_local || new Date().toISOString();
         const stop: Stop = {
           id: stopId,
           cityId,
           publicName: row.public_landmark,
+          landmarkContext: (row as Record<string, string>).landmark_context || undefined,
+          category: ((row as Record<string, string>).landmark_category as any) || undefined,
           lat,
           lon,
           sourceId,
@@ -198,7 +204,16 @@ export function importFromCsv(csvText: string, cityId: string = DEFAULT_CITY_ID)
     // Crear segmentos entre puntos consecutivos
     const stopIds = sortedRows
       .filter(r => r.public_landmark && toNumber(r.latitude) !== undefined)
-      .map(r => `stop-${obsId}-${r.point_sequence}`);
+      .map(r => {
+        const landmark = r.public_landmark ?? '';
+        const cId = landmark
+          ? 'stop-' + landmark.toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '')
+          : '';
+        return cId || `stop-${obsId}-${r.point_sequence}`;
+      });
 
     for (let i = 0; i < stopIds.length - 1; i++) {
       const fromId = stopIds[i]!;

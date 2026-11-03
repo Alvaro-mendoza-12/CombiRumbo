@@ -143,4 +143,43 @@ describe('Router & Itinerary Search', () => {
     const itineraries = findItineraries(TEST_CATALOG, 'TEST_STOP_1', 'TEST_STOP_1', TEST_NOW);
     expect(itineraries).toHaveLength(0);
   });
+
+  it('genera itinerario de caminata directa si los paraderos están a menos de 280 metros', () => {
+    const catalogClose: Catalog = {
+      ...TEST_CATALOG,
+      stops: [
+        { id: 'CLOSE_A', cityId: 'chiclayo', publicName: 'Punto A', lat: -6.7715, lon: -79.8400, sourceId: 'TEST_SRC', verifiedAt: '2026-11-01T00:00:00Z' },
+        { id: 'CLOSE_B', cityId: 'chiclayo', publicName: 'Punto B', lat: -6.7725, lon: -79.8405, sourceId: 'TEST_SRC', verifiedAt: '2026-11-01T00:00:00Z' }, // ~120m
+      ],
+      segments: [],
+    };
+    const itineraries = findItineraries(catalogClose, 'CLOSE_A', 'CLOSE_B', TEST_NOW);
+    expect(itineraries).toHaveLength(1);
+    const itin = itineraries[0]!;
+    expect(itin.tags).toContain('walking-only');
+    expect(itin.steps).toHaveLength(1);
+    expect(itin.steps[0]!.type).toBe('direct-walk');
+    expect(itin.fare.amount).toBe(0);
+    expect(itin.fare.confirmed).toBe(true);
+  });
+
+  it('calcula tarifa única por vehículo aunque recorra múltiples tramos de la misma ruta', () => {
+    const multiSegmentCatalog: Catalog = {
+      ...TEST_CATALOG,
+      stops: [
+        { id: 'S1', cityId: 'chiclayo', publicName: 'Parada 1', lat: -6.7710, lon: -79.8400, sourceId: 'TEST_SRC', verifiedAt: '2026-11-01T00:00:00Z' },
+        { id: 'S2', cityId: 'chiclayo', publicName: 'Parada 2', lat: -6.7750, lon: -79.8420, sourceId: 'TEST_SRC', verifiedAt: '2026-11-01T00:00:00Z' },
+        { id: 'S3', cityId: 'chiclayo', publicName: 'Parada 3', lat: -6.7800, lon: -79.8450, sourceId: 'TEST_SRC', verifiedAt: '2026-11-01T00:00:00Z' },
+      ],
+      segments: [
+        { id: 'SEG1', routeId: 'TEST_R1', fromStopId: 'S1', toStopId: 'S2', fare: 2.5, fareUnit: 'S/', sourceId: 'TEST_SRC', evidenceMethod: 'field-observation', status: 'verified', observedAt: '2026-11-01T00:00:00Z' },
+        { id: 'SEG2', routeId: 'TEST_R1', fromStopId: 'S2', toStopId: 'S3', fare: 2.5, fareUnit: 'S/', sourceId: 'TEST_SRC', evidenceMethod: 'field-observation', status: 'verified', observedAt: '2026-11-01T00:00:00Z' },
+      ],
+    };
+    const itineraries = findItineraries(multiSegmentCatalog, 'S1', 'S3', TEST_NOW);
+    expect(itineraries).toHaveLength(1);
+    const itin = itineraries[0]!;
+    expect(itin.totalTransfers).toBe(0);
+    expect(itin.fare.amount).toBe(2.5); // Tarifa cobrada 1 vez para la misma combi
+  });
 });

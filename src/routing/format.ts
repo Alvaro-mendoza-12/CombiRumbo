@@ -4,20 +4,28 @@
 
 import type { Route, Segment, Source, Stop, SegmentStatus } from '@/catalog/types';
 
+export type StepType = 'walk' | 'ride' | 'transfer' | 'direct-walk';
+
 export interface ItineraryStep {
-  type: 'walk' | 'ride';
+  type: StepType;
   label: string;
   fromStop?: Stop;
   toStop?: Stop;
   route?: Route;
   segment?: Segment;
   boardingNote?: string;
+  boardingTip?: string;
+  vehicleSign?: string;
+  vehicleDescription?: string;
   alightingNote?: string;
+  alightingTip?: string;
   fare?: { amount: number; unit: string };
   source?: Source;
   observedAt?: string;
   status: SegmentStatus;
   walkMeters?: number;
+  durationMinutes?: number;
+  geometry?: [number, number][];
 }
 
 export interface Itinerary {
@@ -26,6 +34,14 @@ export interface Itinerary {
   totalTransfers: number;
   estimatedWalkMeters: number;
   estimatedWalkSeconds: number;
+  estimatedRideMinutes: number;
+  estimatedTotalMinutes: number;
+  tag: 'recommended' | 'direct' | 'least-walking' | 'walking-only';
+  tags: string[];
+  totalWalkMinutes: number;
+  totalWalkMeters: number;
+  tagLabel: string;
+  summary: string;
   orderingCriteria: string;
   verificationDate: string;
   fare: {
@@ -35,20 +51,20 @@ export interface Itinerary {
   };
 }
 
-/** Formatea una fecha ISO a texto legible en español. */
+/** Formatea una fecha ISO a texto legible en español o inglés. */
 export function formatDate(isoDate: string, lang: 'es' | 'en' = 'es'): string {
   const d = new Date(isoDate);
   if (isNaN(d.getTime())) return '';
   if (lang === 'es') {
     return d.toLocaleDateString('es-PE', {
       day: 'numeric',
-      month: 'long',
+      month: 'short',
       year: 'numeric',
     });
   }
   return d.toLocaleDateString('en-US', {
     day: 'numeric',
-    month: 'long',
+    month: 'short',
     year: 'numeric',
   });
 }
