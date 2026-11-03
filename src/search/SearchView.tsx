@@ -456,16 +456,22 @@ export function SearchView({
               </button>
             </div>
 
-            {/* Input de búsqueda en tiempo real */}
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="picker-search-input"
-              placeholder="Escribe USMP, USS, USAT, Real Plaza, Hospital..."
-              value={pickerFilter}
-              onChange={(e) => setPickerFilter(e.target.value)}
-              autoComplete="off"
-            />
+            {/* Input de búsqueda en tiempo real con icono integrado */}
+            <div className="picker-search-container">
+              <span className="picker-search-icon" aria-hidden="true">🔍</span>
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="picker-search-input"
+                placeholder="Escribe USMP, USS, USAT, Real Plaza, Hospital..."
+                value={pickerFilter}
+                onChange={(e) => setPickerFilter(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setPickerTarget(null);
+                }}
+                autoComplete="off"
+              />
+            </div>
 
             {/* Chips de filtro por categorías */}
             <div className="category-chips-row" role="group" aria-label="Categorías">

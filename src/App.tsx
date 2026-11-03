@@ -43,8 +43,85 @@ export default function App() {
   // Estado para centrado dinámico del mapa
   const [mapCenterOverride, setMapCenterOverride] = useState<[number, number] | null>(null);
 
+  // Notificación de detección automática de país / ciudad
+  const [detectionToast, setDetectionToast] = useState<string | null>(null);
+
   // En móvil: colapsar a vista reducida o desplegar a pantalla completa
   const [mobileSheetCollapsed, setMobileSheetCollapsed] = useState(false);
+
+  // Auto-detección inteligente del país / ciudad del dispositivo
+  useEffect(() => {
+    let timer: NodeJS.Timeout | number;
+
+    // 1. Detección rápida y sin permisos vía huso horario / locale del dispositivo
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      if (tz.includes('Bogota')) {
+        const bogota = SUPPORTED_CITIES_LIST.find(c => c.id === 'bogota');
+        if (bogota) {
+          setActiveCity(bogota);
+          setMapCenterOverride([...bogota.boundingCenter]);
+          setDetectionToast(`📍 Ubicación detectada: Bogotá, Colombia. Red asignada automáticamente.`);
+          timer = setTimeout(() => setDetectionToast(null), 6000);
+          return;
+        }
+      } else if (tz.includes('Mexico') || tz.includes('Monterrey') || tz.includes('Cancun') || tz.includes('Tijuana')) {
+        const cdmx = SUPPORTED_CITIES_LIST.find(c => c.id === 'cdmx');
+        if (cdmx) {
+          setActiveCity(cdmx);
+          setMapCenterOverride([...cdmx.boundingCenter]);
+          setDetectionToast(`📍 Ubicación detectada: Ciudad de México. Red asignada automáticamente.`);
+          timer = setTimeout(() => setDetectionToast(null), 6000);
+          return;
+        }
+      } else if (tz.includes('Buenos_Aires') || tz.includes('Cordoba') || tz.includes('Mendoza') || tz.includes('Argentina')) {
+        const bsas = SUPPORTED_CITIES_LIST.find(c => c.id === 'buenosaires');
+        if (bsas) {
+          setActiveCity(bsas);
+          setMapCenterOverride([...bsas.boundingCenter]);
+          setDetectionToast(`📍 Ubicación detectada: Buenos Aires, Argentina. Red asignada automáticamente.`);
+          timer = setTimeout(() => setDetectionToast(null), 6000);
+          return;
+        }
+      }
+    } catch {
+      // Continuar con fallback por geolocalización
+    }
+
+    // 2. Si hay coordenadas GPS autorizadas en el navegador, asociar a la ciudad más cercana
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const uLat = pos.coords.latitude;
+          const uLon = pos.coords.longitude;
+
+          let closest = CHICLAYO_CITY_CONFIG;
+          let minD = Infinity;
+
+          for (const c of SUPPORTED_CITIES_LIST) {
+            const d = Math.hypot(c.boundingCenter[0] - uLat, c.boundingCenter[1] - uLon);
+            if (d < minD) {
+              minD = d;
+              closest = c;
+            }
+          }
+
+          if (closest.id !== 'chiclayo') {
+            setActiveCity(closest);
+            setMapCenterOverride([...closest.boundingCenter]);
+            setDetectionToast(`📍 Ubicación detectada cerca de ${closest.name} (${closest.country}). Red asignada.`);
+            timer = setTimeout(() => setDetectionToast(null), 6000);
+          }
+        },
+        () => {},
+        { timeout: 3000, maximumAge: 300000 }
+      );
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   // Cargar catálogo de rutas verificadas
   useEffect(() => {
@@ -168,6 +245,20 @@ export default function App() {
             height="100%"
           />
         </div>
+
+        {/* Notificación flotante de detección automática de país */}
+        {detectionToast && (
+          <div className="toast-location-notification" role="status" aria-live="polite">
+            <span>{detectionToast}</span>
+            <button
+              type="button"
+              onClick={() => setDetectionToast(null)}
+              aria-label="Cerrar notificación de ubicación"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* CONTROLES FLOTANTES EN EL MAPA (Inferior derecha) */}
         <div className="floating-map-controls" role="toolbar" aria-label="Controles del mapa">

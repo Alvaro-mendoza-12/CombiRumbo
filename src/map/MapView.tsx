@@ -7,7 +7,7 @@
  *    viaje en combi (línea sólida con color de ruta) y marcadores visuales (A, 🚐, 🛑, 🏁).
  */
 
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -87,6 +87,74 @@ const catalogStopIcon = L.divIcon({
   popupAnchor: [0, -14],
 });
 
+const movingCombiIcon = L.divIcon({
+  className: 'moving-combi-beacon',
+  html: '<span>🚐</span>',
+  iconSize: [38, 38],
+  iconAnchor: [19, 19],
+});
+
+/**
+ * Baliza interactiva de combi que se desplaza suavemente a lo largo de la ruta
+ * animando el recorrido para el usuario (Citymapper / Google Maps style).
+ */
+function MovingCombiBeacon({ points }: { points: [number, number][] }) {
+  const [pos, setPos] = useState<[number, number] | null>(points[0] || null);
+
+  useEffect(() => {
+    if (!points || points.length < 2) return;
+
+    const cumDist: number[] = [0];
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      if (p1 && p2) {
+        const d = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+        cumDist.push((cumDist[i] ?? 0) + d);
+      }
+    }
+    const totalDist = cumDist[cumDist.length - 1] || 1;
+
+    let startTime = performance.now();
+    const duration = 10000; // Recorre el trayecto en 10 segundos y hace loop continuo
+
+    let animId: number;
+    const animate = (time: number) => {
+      const elapsed = (time - startTime) % duration;
+      const progress = elapsed / duration;
+      const targetDist = progress * totalDist;
+
+      let segIdx = 0;
+      for (let i = 0; i < cumDist.length - 1; i++) {
+        const d1 = cumDist[i] ?? 0;
+        const d2 = cumDist[i + 1] ?? totalDist;
+        if (targetDist >= d1 && targetDist <= d2) {
+          segIdx = i;
+          break;
+        }
+      }
+
+      const p1 = points[segIdx] ?? points[0] ?? [0, 0];
+      const p2 = points[segIdx + 1] ?? points[points.length - 1] ?? [0, 0];
+      const segStart = cumDist[segIdx] ?? 0;
+      const segLen = (cumDist[segIdx + 1] ?? 1) - segStart;
+      const ratio = segLen > 0 ? (targetDist - segStart) / segLen : 0;
+
+      const lat = p1[0] + (p2[0] - p1[0]) * ratio;
+      const lon = p1[1] + (p2[1] - p1[1]) * ratio;
+
+      setPos([lat, lon]);
+      animId = requestAnimationFrame(animate);
+    };
+
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [points]);
+
+  if (!pos) return null;
+  return <Marker position={pos} icon={movingCombiIcon} zIndexOffset={1000} />;
+}
+
 interface RouteSegmentVisual {
   type: 'walk' | 'ride' | 'network';
   points: [number, number][];
@@ -112,10 +180,11 @@ export function MapView({
   onSelectStop,
   centerOverride,
 }: MapViewProps) {
-  const { polylines, markers, bounds, defaultCenter, defaultZoom } = useMemo(() => {
+  const { polylines, markers, bounds, defaultCenter, defaultZoom, combiPoints } = useMemo(() => {
     const lines: RouteSegmentVisual[] = [];
     const markerList: MapMarker[] = [];
     const allCoords: [number, number][] = [];
+    const combiPoints: [number, number][] = [];
 
     // CASO 1: Hay un itinerario activo seleccionado
     if (itinerary && itinerary.steps && itinerary.steps.length > 0) {
@@ -217,6 +286,9 @@ export function MapView({
               color: step.route?.routeColor || '#f97316',
               weight: 5,
             });
+            if (combiPoints.length === 0) {
+              combiPoints.push(...linePts);
+            }
           }
         }
       }
@@ -294,6 +366,7 @@ export function MapView({
       bounds: latLngBounds,
       defaultCenter: center,
       defaultZoom: itinerary ? 14 : 13,
+      combiPoints,
     };
   }, [itinerary, catalog]);
 
@@ -333,7 +406,7 @@ export function MapView({
         {/* Recentrado manual / suave */}
         <MapCenterUpdater center={centerOverride} />
 
-        {/* Polylines de rutas */}
+        {/* Polylines de rutas (con animación de flujo para tramos activos) */}
         {polylines.map((poly, idx) => (
           <Polyline
             key={idx}
@@ -343,9 +416,15 @@ export function MapView({
               weight: poly.weight,
               dashArray: poly.dashArray,
               opacity: poly.type === 'network' ? 0.75 : 0.95,
+              className: poly.type === 'ride' ? 'animated-route-flow' : poly.type === 'walk' ? 'animated-walking-flow' : '',
             }}
           />
         ))}
+
+        {/* Baliza animada de la combi en movimiento a lo largo del recorrido */}
+        {combiPoints.length >= 2 && (
+          <MovingCombiBeacon points={combiPoints} />
+        )}
 
         {/* Marcadores con popups interactivos */}
         {markers.map((m) => (
