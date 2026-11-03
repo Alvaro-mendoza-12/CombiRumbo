@@ -1,11 +1,10 @@
 /**
- * Vista de mapa con Leaflet interactivo.
- * Dibuja el recorrido completo:
- * - Trazado azul discontinuo para caminatas
- * - Trazado sólido con color de ruta para viaje en combi
- * - Marcadores visuales de origen (A), abordaje (🚐), descenso (🛑) y destino (🏁)
- * - Auto-centrado de límites geográficos (fitBounds)
- * - Atribución obligatoria a OpenStreetMap
+ * Vista de mapa interactiva con Leaflet.
+ * Modo dual:
+ * 1. Resumen de red (sin itinerario): Muestra todos los paraderos y corredores
+ *    verificados de Chiclayo, permitiendo seleccionar origen/destino tocando el mapa.
+ * 2. Itinerario activo: Dibuja el trazado preciso, tramos peatonales (cian discontinuo),
+ *    viaje en combi (línea sólida con color de ruta) y marcadores visuales (A, 🚐, 🛑, 🏁).
  */
 
 import { useEffect, useMemo } from 'react';
@@ -15,15 +14,16 @@ import 'leaflet/dist/leaflet.css';
 import type { Itinerary } from '@/routing/format';
 import { ACTIVE_PROVIDER } from './MapProvider';
 import { MAP_ATTRIBUTION_OSM } from './attribution';
-import type { Catalog } from '@/catalog/types';
+import type { Catalog, Stop } from '@/catalog/types';
 
 interface MapViewProps {
-  itinerary: Itinerary;
+  itinerary?: Itinerary | null;
   catalog?: Catalog;
   height?: string;
+  onSelectStop?: (stop: Stop, role: 'origin' | 'destination') => void;
 }
 
-// Componente para auto-ajustar la vista del mapa a los límites del recorrido
+// Auto-ajuste de límites cuando cambian los puntos
 function MapBoundsUpdater({ bounds }: { bounds: L.LatLngBounds | null }) {
   const map = useMap();
   useEffect(() => {
@@ -34,49 +34,49 @@ function MapBoundsUpdater({ bounds }: { bounds: L.LatLngBounds | null }) {
   return null;
 }
 
-// Iconos personalizados con estilos CSS
+// Marcadores personalizados con divIcon
 const originIcon = L.divIcon({
   className: 'custom-pin pin-origin',
   html: '<span>A</span>',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-  popupAnchor: [0, -15],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16],
 });
 
 const destIcon = L.divIcon({
   className: 'custom-pin pin-dest',
   html: '<span>🏁</span>',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
-  popupAnchor: [0, -15],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16],
 });
 
 const boardIcon = L.divIcon({
   className: 'custom-pin pin-board',
   html: '<span>🚐</span>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -17],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
 });
 
 const alightIcon = L.divIcon({
   className: 'custom-pin pin-alight',
   html: '<span>🛑</span>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -17],
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
 });
 
-const stopDotIcon = L.divIcon({
-  className: 'custom-pin',
-  html: '<div style="width:12px;height:12px;background:#38bdf8;border:2px solid #ffffff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>',
-  iconSize: [12, 12],
-  iconAnchor: [6, 6],
-  popupAnchor: [0, -6],
+const catalogStopIcon = L.divIcon({
+  className: 'custom-pin pin-stop-network',
+  html: '<div class="pin-inner-stop"><span>🚏</span></div>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+  popupAnchor: [0, -14],
 });
 
 interface RouteSegmentVisual {
-  type: 'walk' | 'ride';
+  type: 'walk' | 'ride' | 'network';
   points: [number, number][];
   color: string;
   dashArray?: string;
@@ -90,146 +90,169 @@ interface MapMarker {
   lat: number;
   lon: number;
   type: 'origin' | 'dest' | 'board' | 'alight' | 'stop';
+  stopRef?: Stop;
 }
 
-export function MapView({ itinerary, height = '320px' }: MapViewProps) {
-  const { polylines, markers, bounds, defaultCenter } = useMemo(() => {
+export function MapView({
+  itinerary,
+  catalog,
+  height = '100%',
+  onSelectStop,
+}: MapViewProps) {
+  const { polylines, markers, bounds, defaultCenter, defaultZoom } = useMemo(() => {
     const lines: RouteSegmentVisual[] = [];
     const markerList: MapMarker[] = [];
     const allCoords: [number, number][] = [];
 
-    const steps = itinerary.steps;
-    if (steps.length === 0) {
-      return {
-        polylines: [],
-        markers: [],
-        bounds: null,
-        defaultCenter: [-6.7715, -79.8400] as [number, number],
-      };
-    }
+    // CASO 1: Hay un itinerario activo seleccionado
+    if (itinerary && itinerary.steps && itinerary.steps.length > 0) {
+      const steps = itinerary.steps;
+      const firstStep = steps[0];
+      const lastStep = steps[steps.length - 1];
 
-    const firstStep = steps[0];
-    const lastStep = steps[steps.length - 1];
-    if (!firstStep || !lastStep) {
-      return {
-        polylines: [],
-        markers: [],
-        bounds: null,
-        defaultCenter: [-6.7715, -79.8400] as [number, number],
-      };
-    }
+      if (firstStep && firstStep.fromStop) {
+        markerList.push({
+          id: `origin-${firstStep.fromStop.id}`,
+          title: `Origen: ${firstStep.fromStop.publicName}`,
+          subtitle: firstStep.fromStop.landmarkContext,
+          lat: firstStep.fromStop.lat,
+          lon: firstStep.fromStop.lon,
+          type: 'origin',
+        });
+        allCoords.push([firstStep.fromStop.lat, firstStep.fromStop.lon]);
+      }
 
-    // Marcador de origen (A)
-    if (firstStep.fromStop) {
-      markerList.push({
-        id: `origin-${firstStep.fromStop.id}`,
-        title: `Origen: ${firstStep.fromStop.publicName}`,
-        subtitle: firstStep.fromStop.landmarkContext,
-        lat: firstStep.fromStop.lat,
-        lon: firstStep.fromStop.lon,
-        type: 'origin',
-      });
-      allCoords.push([firstStep.fromStop.lat, firstStep.fromStop.lon]);
-    }
+      if (lastStep && lastStep.toStop) {
+        markerList.push({
+          id: `dest-${lastStep.toStop.id}`,
+          title: `Destino: ${lastStep.toStop.publicName}`,
+          subtitle: lastStep.toStop.landmarkContext,
+          lat: lastStep.toStop.lat,
+          lon: lastStep.toStop.lon,
+          type: 'dest',
+        });
+        allCoords.push([lastStep.toStop.lat, lastStep.toStop.lon]);
+      }
 
-    // Marcador de destino (🏁)
-    if (lastStep.toStop) {
-      markerList.push({
-        id: `dest-${lastStep.toStop.id}`,
-        title: `Destino: ${lastStep.toStop.publicName}`,
-        subtitle: lastStep.toStop.landmarkContext,
-        lat: lastStep.toStop.lat,
-        lon: lastStep.toStop.lon,
-        type: 'dest',
-      });
-      allCoords.push([lastStep.toStop.lat, lastStep.toStop.lon]);
-    }
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        if (!step) continue;
 
-    // Procesar cada paso para líneas y paraderos intermedios
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      if (!step) continue;
+        if (step.type === 'walk' || step.type === 'direct-walk') {
+          const linePts: [number, number][] = [];
+          if (step.fromStop) linePts.push([step.fromStop.lat, step.fromStop.lon]);
+          if (step.toStop) linePts.push([step.toStop.lat, step.toStop.lon]);
 
-      if (step.type === 'walk' || step.type === 'direct-walk') {
-        const linePts: [number, number][] = [];
-        if (step.fromStop) linePts.push([step.fromStop.lat, step.fromStop.lon]);
-        if (step.toStop) linePts.push([step.toStop.lat, step.toStop.lon]);
-
-        if (linePts.length >= 2) {
-          lines.push({
-            type: 'walk',
-            points: linePts,
-            color: '#0284c7',
-            dashArray: '6, 8',
-            weight: 4,
-          });
-          allCoords.push(...linePts);
-        }
-      } else if (step.type === 'ride') {
-        const linePts: [number, number][] = [];
-
-        // Punto de subida
-        if (step.fromStop) {
-          linePts.push([step.fromStop.lat, step.fromStop.lon]);
-          allCoords.push([step.fromStop.lat, step.fromStop.lon]);
-
-          // Agregar marcador de abordaje si no es el origen mismo
-          const isOrigin = step.fromStop.id === firstStep.fromStop?.id && firstStep.type !== 'walk';
-          const cue = step.boardingTip || step.boardingNote || step.segment?.boardingCue || step.fromStop.landmarkContext;
-          markerList.push({
-            id: `board-${step.fromStop.id}-${i}`,
-            title: `Subir a ${step.route?.label ?? 'Transporte'}`,
-            subtitle: cue,
-            lat: step.fromStop.lat,
-            lon: step.fromStop.lon,
-            type: isOrigin ? 'origin' : 'board',
-          });
-        }
-
-        // Geometría curva / waypoints del segmento
-        if (step.segment?.geometry && step.segment.geometry.length > 0) {
-          for (const pt of step.segment.geometry) {
-            linePts.push(pt);
-            allCoords.push(pt);
+          if (linePts.length >= 2) {
+            lines.push({
+              type: 'walk',
+              points: linePts,
+              color: '#0284c7',
+              dashArray: '6, 8',
+              weight: 4,
+            });
+            allCoords.push(...linePts);
           }
-        }
+        } else if (step.type === 'ride') {
+          const linePts: [number, number][] = [];
 
-        // Punto de bajada
-        if (step.toStop) {
-          linePts.push([step.toStop.lat, step.toStop.lon]);
-          allCoords.push([step.toStop.lat, step.toStop.lon]);
+          if (step.fromStop) {
+            linePts.push([step.fromStop.lat, step.fromStop.lon]);
+            allCoords.push([step.fromStop.lat, step.fromStop.lon]);
 
-          // Agregar marcador de descenso si no es el destino final
-          const isDest = step.toStop.id === lastStep.toStop?.id;
-          if (!isDest) {
-            const cue = step.alightingTip || step.alightingNote || step.segment?.alightingCue || step.toStop.landmarkContext;
+            const isOrigin = step.fromStop.id === firstStep?.fromStop?.id && firstStep.type !== 'walk';
+            const cue = step.boardingTip || step.boardingNote || step.fromStop.landmarkContext;
             markerList.push({
-              id: `alight-${step.toStop.id}-${i}`,
-              title: `Bajar en ${step.toStop.publicName}`,
+              id: `board-${step.fromStop.id}-${i}`,
+              title: `Subir a ${step.route?.label ?? 'Transporte'}`,
               subtitle: cue,
-              lat: step.toStop.lat,
-              lon: step.toStop.lon,
-              type: 'alight',
+              lat: step.fromStop.lat,
+              lon: step.fromStop.lon,
+              type: isOrigin ? 'origin' : 'board',
+            });
+          }
+
+          if (step.segment?.geometry && step.segment.geometry.length > 0) {
+            for (const pt of step.segment.geometry) {
+              linePts.push(pt);
+              allCoords.push(pt);
+            }
+          }
+
+          if (step.toStop) {
+            linePts.push([step.toStop.lat, step.toStop.lon]);
+            allCoords.push([step.toStop.lat, step.toStop.lon]);
+
+            const isDest = step.toStop.id === lastStep?.toStop?.id;
+            if (!isDest) {
+              const cue = step.alightingTip || step.alightingNote || step.toStop.landmarkContext;
+              markerList.push({
+                id: `alight-${step.toStop.id}-${i}`,
+                title: `Bajar en ${step.toStop.publicName}`,
+                subtitle: cue,
+                lat: step.toStop.lat,
+                lon: step.toStop.lon,
+                type: 'alight',
+              });
+            }
+          }
+
+          if (linePts.length >= 2) {
+            lines.push({
+              type: 'ride',
+              points: linePts,
+              color: step.route?.routeColor || '#f97316',
+              weight: 5,
             });
           }
         }
+      }
+    } else if (catalog) {
+      // CASO 2: Sin itinerario seleccionado -> Dibujar toda la red verificada de Chiclayo
+      const stopsMap = new Map<string, Stop>();
+      for (const stop of catalog.stops) {
+        stopsMap.set(stop.id, stop);
+        markerList.push({
+          id: `net-stop-${stop.id}`,
+          title: stop.publicName,
+          subtitle: stop.landmarkContext,
+          lat: stop.lat,
+          lon: stop.lon,
+          type: 'stop',
+          stopRef: stop,
+        });
+        allCoords.push([stop.lat, stop.lon]);
+      }
 
-        if (linePts.length >= 2) {
-          lines.push({
-            type: 'ride',
-            points: linePts,
-            color: step.route?.routeColor || '#f97316',
-            weight: 5,
-          });
+      // Dibujar los segmentos del catálogo
+      const routeColorMap: Record<string, string> = {};
+      for (const r of catalog.routes) {
+        routeColorMap[r.id] = r.routeColor || '#f97316';
+      }
+
+      for (const seg of catalog.segments) {
+        const from = stopsMap.get(seg.fromStopId);
+        const to = stopsMap.get(seg.toStopId);
+        if (!from || !to) continue;
+
+        const pts: [number, number][] = [[from.lat, from.lon]];
+        if (seg.geometry && seg.geometry.length > 0) {
+          pts.push(...seg.geometry);
         }
+        pts.push([to.lat, to.lon]);
+
+        lines.push({
+          type: 'network',
+          points: pts,
+          color: routeColorMap[seg.routeId] || '#f59e0b',
+          weight: 4,
+        });
       }
     }
 
-    // Deduplicar marcadores que coincidan en lat/lon
+    // Deduplicar marcadores
     const uniqueMarkers: MapMarker[] = [];
     const seenPos = new Set<string>();
-
-    // Priorizar tipos: origin > dest > board > alight > stop
     const typePriority: Record<string, number> = { origin: 5, dest: 4, board: 3, alight: 2, stop: 1 };
     markerList.sort((a, b) => (typePriority[b.type] || 0) - (typePriority[a.type] || 0));
 
@@ -241,7 +264,6 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
       }
     }
 
-    // Calcular bounds geográficos
     const latLngBounds = allCoords.length > 0
       ? L.latLngBounds(allCoords.map(([lat, lon]) => L.latLng(lat, lon)))
       : null;
@@ -258,8 +280,9 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
       markers: uniqueMarkers,
       bounds: latLngBounds,
       defaultCenter: center,
+      defaultZoom: itinerary ? 14 : 13,
     };
-  }, [itinerary]);
+  }, [itinerary, catalog]);
 
   const getMarkerIcon = (type: MapMarker['type']) => {
     switch (type) {
@@ -272,18 +295,18 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
       case 'alight':
         return alightIcon;
       default:
-        return stopDotIcon;
+        return catalogStopIcon;
     }
   };
 
   return (
-    <div className="map-section">
+    <div className="map-wrapper" style={{ height, width: '100%', position: 'relative' }}>
       <MapContainer
         center={defaultCenter}
-        zoom={14}
-        scrollWheelZoom={false}
-        style={{ height, width: '100%' }}
-        aria-label="Mapa interactivo del recorrido verificado"
+        zoom={defaultZoom}
+        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%' }}
+        aria-label="Mapa de la red de transporte verificado de Chiclayo"
       >
         <TileLayer
           url={ACTIVE_PROVIDER.url}
@@ -294,7 +317,7 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
         {/* Auto-ajuste de límites */}
         <MapBoundsUpdater bounds={bounds} />
 
-        {/* Polylines diferenciadas */}
+        {/* Polylines de rutas */}
         {polylines.map((poly, idx) => (
           <Polyline
             key={idx}
@@ -303,12 +326,12 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
               color: poly.color,
               weight: poly.weight,
               dashArray: poly.dashArray,
-              opacity: 0.9,
+              opacity: poly.type === 'network' ? 0.75 : 0.95,
             }}
           />
         ))}
 
-        {/* Marcadores de paraderos con popups detallados */}
+        {/* Marcadores con popups interactivos */}
         {markers.map((m) => (
           <Marker
             key={m.id}
@@ -316,14 +339,29 @@ export function MapView({ itinerary, height = '320px' }: MapViewProps) {
             icon={getMarkerIcon(m.type)}
           >
             <Popup>
-              <div style={{ padding: '2px 4px', maxWidth: '200px' }}>
-                <strong style={{ display: 'block', fontSize: '0.9rem', marginBottom: '2px' }}>
-                  {m.title}
-                </strong>
+              <div className="map-popup-card">
+                <strong className="popup-title">{m.title}</strong>
                 {m.subtitle && (
-                  <span style={{ fontSize: '0.78rem', color: '#475569', display: 'block' }}>
-                    {m.subtitle}
-                  </span>
+                  <span className="popup-subtitle">📍 {m.subtitle}</span>
+                )}
+                {/* Si estamos en modo explorador y hay callback para seleccionar paradero */}
+                {m.stopRef && onSelectStop && (
+                  <div className="popup-actions-row">
+                    <button
+                      type="button"
+                      className="btn-popup-select origin"
+                      onClick={() => onSelectStop(m.stopRef!, 'origin')}
+                    >
+                      🟢 Salir desde aquí
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-popup-select dest"
+                      onClick={() => onSelectStop(m.stopRef!, 'destination')}
+                    >
+                      🏁 Ir hacia aquí
+                    </button>
+                  </div>
                 )}
               </div>
             </Popup>

@@ -17,7 +17,6 @@ import { getStatusVisual } from '@/accessibility/a11y';
 import { getSource } from '@/catalog/catalog';
 import type { Lang, TFunc } from '@/accessibility/i18n';
 import { ReportForm } from '@/reports/ReportsView';
-import { MapView } from '@/map/MapView';
 
 interface DetailViewProps {
   itinerary: Itinerary;
@@ -37,7 +36,6 @@ export function DetailView({
   onBack,
 }: DetailViewProps) {
   const [showReportForm, setShowReportForm] = useState(false);
-  const [showMap, setShowMap] = useState(true);
 
   const isWalkingOnly = itinerary.tags.includes('walking-only');
   const rideSteps = itinerary.steps.filter((s) => s.type === 'ride');
@@ -46,14 +44,27 @@ export function DetailView({
   return (
     <div className="detail-container">
       {/* Botón de retroceso */}
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={onBack}
-        style={{ alignSelf: 'flex-start' }}
-      >
-        ← {t('detail.back')}
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={onBack}
+        >
+          ← {t('detail.back')}
+        </button>
+
+        {online && !isWalkingOnly && (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowReportForm(!showReportForm)}
+            aria-expanded={showReportForm}
+            style={{ fontSize: '0.85rem' }}
+          >
+            📢 {t('results.reportChange')}
+          </button>
+        )}
+      </div>
 
       {/* Tarjeta Hero Resumen */}
       <div className="detail-hero-card">
@@ -89,36 +100,6 @@ export function DetailView({
           {t('results.ordering')}: {itinerary.orderingCriteria}
         </div>
       </div>
-
-      {/* Botón para alternar mapa */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => setShowMap(!showMap)}
-          aria-expanded={showMap}
-          style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-        >
-          {showMap ? `▼ ${t('results.hideMap')}` : `▶ ${t('results.viewMap')}`}
-        </button>
-
-        {online && !isWalkingOnly && (
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => setShowReportForm(!showReportForm)}
-            aria-expanded={showReportForm}
-            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-          >
-            📢 {t('results.reportChange')}
-          </button>
-        )}
-      </div>
-
-      {/* Mapa Leaflet Interactivo */}
-      {showMap && (
-        <MapView itinerary={itinerary} catalog={catalog} height="300px" />
-      )}
 
       {/* Formulario de Reporte Comunitario */}
       {showReportForm && online && (

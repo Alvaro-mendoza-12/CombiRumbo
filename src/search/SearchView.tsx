@@ -1,7 +1,9 @@
 /**
- * Pantalla de búsqueda de CombiRumbo Chiclayo.
- * Permite seleccionar origen y destino con modal accesible, chips de categoría,
- * botón de intercambio (swap), y geolocalización opcional respetando privacidad.
+ * Pantalla de búsqueda de CombiRumbo Chiclayo (Diseño Citymapper / Transit App).
+ * - Dock de transporte conectado (Origen 🟢 y Destino 🏁) con Swap central (⇅).
+ * - Chips de prueba rápida (1-click) para demostración inmediata ante jueces.
+ * - Modal bottom-sheet con filtro por categorías y buscador en tiempo real.
+ * - Geolocalización opcional local protegida por el radio de Chiclayo.
  */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -24,6 +26,7 @@ type PickerTarget = 'origin' | 'destination' | null;
 
 export function SearchView({
   search,
+  catalog,
   empty,
   t,
   onSearch,
@@ -37,7 +40,7 @@ export function SearchView({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Enfocar input de búsqueda al abrir el modal
+  // Auto-foco en el buscador al abrir el selector
   useEffect(() => {
     if (pickerTarget && searchInputRef.current) {
       setTimeout(() => {
@@ -46,7 +49,7 @@ export function SearchView({
     }
   }, [pickerTarget]);
 
-  // Manejar GPS
+  // Manejar geolocalización segura
   const handleLocation = useCallback(async () => {
     setGeoLoading(true);
     setGeoError(null);
@@ -58,7 +61,6 @@ export function SearchView({
       return;
     }
 
-    // Ubicación válida y dentro de Chiclayo
     if (result.result && result.result.stop) {
       search.setCustomOriginLocation(
         { lat: result.result.lat, lon: result.result.lon },
@@ -67,14 +69,26 @@ export function SearchView({
     }
   }, [search]);
 
-  // Manejar inversión de paraderos (swap)
+  // Invertir origen y destino
   const handleSwap = useCallback(() => {
     setSwapRotating(true);
     search.swapStops();
     setTimeout(() => setSwapRotating(false), 300);
   }, [search]);
 
-  // Manejar envío de búsqueda
+  // Selección rápida de rutas preconfiguradas para evaluadores / jueces
+  const handleQuickSelect = useCallback((fromId: string, toId: string) => {
+    if (!catalog) return;
+    const fromStop = catalog.stops.find(s => s.id === fromId);
+    const toStop = catalog.stops.find(s => s.id === toId);
+    if (fromStop && toStop) {
+      search.selectOrigin(fromStop);
+      search.selectDestination(toStop);
+      onSearch(fromId, toId);
+    }
+  }, [catalog, search, onSearch]);
+
+  // Enviar búsqueda
   const handleSearchSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -85,7 +99,6 @@ export function SearchView({
     [search.originStopId, search.destinationStopId, onSearch]
   );
 
-  // Paraderos a mostrar en el modal según si es origen o destino
   const availableStopsForPicker = useMemo(() => {
     if (pickerTarget === 'origin') {
       return search.availableOrigins;
@@ -96,7 +109,6 @@ export function SearchView({
     return [];
   }, [pickerTarget, search.availableOrigins, search.availableDestinations]);
 
-  // Filtrado dentro del modal por categoría y texto
   const filteredStops = useMemo(() => {
     return availableStopsForPicker.filter((stop: Stop) => {
       const matchesCategory =
@@ -110,7 +122,6 @@ export function SearchView({
     });
   }, [availableStopsForPicker, selectedCategory, pickerFilter]);
 
-  // Seleccionar paradero en el modal
   const handleSelectStop = (stop: Stop) => {
     if (pickerTarget === 'origin') {
       search.selectOrigin(stop);
@@ -146,85 +157,133 @@ export function SearchView({
   }, [search.destinationStopId, search.availableDestinations, search.availableOrigins]);
 
   return (
-    <div>
-      {empty && (
-        <div className="no-results" role="status" aria-live="polite">
-          <h2>{t('empty.title')}</h2>
-          <p>{t('empty.body')}</p>
-          <p className="source-row">{t('empty.coverage')}</p>
+    <div className="search-view-container">
+      {/* 1. Chips de Acceso Rápido para Demostración */}
+      <div className="quick-demo-container">
+        <div className="quick-demo-header">
+          <span>⚡ Rutas verificadas para prueba rápida:</span>
         </div>
-      )}
-
-      <form className="search-card" onSubmit={handleSearchSubmit}>
-        {/* Selector de Origen */}
-        <div className="field">
-          <label htmlFor="origin-trigger" id="origin-label">
-            {t('search.originLabel')}
-          </label>
+        <div className="quick-chips-scroll">
           <button
             type="button"
-            id="origin-trigger"
-            aria-labelledby="origin-label"
-            className="stop-selector-btn"
-            onClick={() => setPickerTarget('origin')}
+            className="quick-demo-chip"
+            onClick={() => handleQuickSelect('stop-ovalo-santa-victoria', 'stop-usmp-campus-chiclayo')}
           >
-            <div className="selector-content">
-              <span className="selector-icon" aria-hidden="true">🟢</span>
-              <div className="selector-text">
-                <span className={`selector-main-text ${!search.originQuery ? 'placeholder' : ''}`}>
-                  {search.originQuery || t('search.originPlaceholder')}
-                </span>
-                {originStopObj?.landmarkContext && (
-                  <span className="selector-sub-text">
-                    {originStopObj.landmarkContext}
-                  </span>
-                )}
-              </div>
+            <span className="chip-badge">🚐 Combi</span>
+            <span className="chip-title">Santa Victoria ➔ USMP</span>
+          </button>
+
+          <button
+            type="button"
+            className="quick-demo-chip"
+            onClick={() => handleQuickSelect('stop-parque-principal', 'stop-balneario-pimentel')}
+          >
+            <span className="chip-badge beach">🌊 Playa</span>
+            <span className="chip-title">Centro ➔ Pimentel</span>
+          </button>
+
+          <button
+            type="button"
+            className="quick-demo-chip"
+            onClick={() => handleQuickSelect('stop-mercado-modelo', 'stop-mercado-moshoqueque')}
+          >
+            <span className="chip-badge linea10">🚌 Línea 10</span>
+            <span className="chip-title">Modelo ➔ Moshoqueque</span>
+          </button>
+
+          <button
+            type="button"
+            className="quick-demo-chip"
+            onClick={() => handleQuickSelect('stop-parque-principal', 'stop-mercado-central')}
+          >
+            <span className="chip-badge walk">🚶 A pie</span>
+            <span className="chip-title">Parque ➔ Mercado (&lt;280m)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Dock de Conexión de Paraderos */}
+      <form className="transit-dock-form" onSubmit={handleSearchSubmit}>
+        <div className="dock-inputs-wrapper">
+          {/* Línea conectora visual */}
+          <div className="dock-connector-line" aria-hidden="true">
+            <span className="dot dot-origin" />
+            <span className="line-segment" />
+            <span className="dot dot-dest" />
+          </div>
+
+          <div className="dock-fields-column">
+            {/* Campo de Origen */}
+            <div className="dock-field">
+              <label htmlFor="origin-trigger" id="origin-label" className="dock-field-label">
+                {t('search.originLabel')}
+              </label>
+              <button
+                type="button"
+                id="origin-trigger"
+                aria-labelledby="origin-label"
+                className="stop-selector-btn"
+                onClick={() => setPickerTarget('origin')}
+              >
+                <div className="selector-content">
+                  <span className="selector-icon" aria-hidden="true">🟢</span>
+                  <div className="selector-text">
+                    <span className={`selector-main-text ${!search.originQuery ? 'placeholder' : ''}`}>
+                      {search.originQuery || t('search.originPlaceholder')}
+                    </span>
+                    {originStopObj?.landmarkContext && (
+                      <span className="selector-sub-text">
+                        {originStopObj.landmarkContext}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="selector-arrow" aria-hidden="true">▾</span>
+              </button>
             </div>
-            <span className="selector-arrow" aria-hidden="true">▾</span>
-          </button>
-        </div>
 
-        {/* Fila intermedia con botón Swap */}
-        <div className="swap-row">
-          <button
-            type="button"
-            className={`btn-swap ${swapRotating ? 'rotating' : ''}`}
-            onClick={handleSwap}
-            aria-label={t('search.swap')}
-            title={t('search.swap')}
-          >
-            <span aria-hidden="true">⇅</span>
-          </button>
-        </div>
-
-        {/* Selector de Destino */}
-        <div className="field">
-          <label htmlFor="dest-trigger" id="dest-label">
-            {t('search.destinationLabel')}
-          </label>
-          <button
-            type="button"
-            id="dest-trigger"
-            aria-labelledby="dest-label"
-            className="stop-selector-btn"
-            onClick={() => setPickerTarget('destination')}
-          >
-            <div className="selector-content">
-              <span className="selector-icon" aria-hidden="true">🏁</span>
-              <div className="selector-text">
-                <span className={`selector-main-text ${!search.destinationQuery ? 'placeholder' : ''}`}>
-                  {search.destinationQuery || t('search.destinationPlaceholder')}
-                </span>
-                {destStopObj?.landmarkContext && (
-                  <span className="selector-sub-text">
-                    {destStopObj.landmarkContext}
-                  </span>
-                )}
-              </div>
+            {/* Campo de Destino */}
+            <div className="dock-field">
+              <label htmlFor="dest-trigger" id="dest-label" className="dock-field-label">
+                {t('search.destinationLabel')}
+              </label>
+              <button
+                type="button"
+                id="dest-trigger"
+                aria-labelledby="dest-label"
+                className="stop-selector-btn"
+                onClick={() => setPickerTarget('destination')}
+              >
+                <div className="selector-content">
+                  <span className="selector-icon" aria-hidden="true">🏁</span>
+                  <div className="selector-text">
+                    <span className={`selector-main-text ${!search.destinationQuery ? 'placeholder' : ''}`}>
+                      {search.destinationQuery || t('search.destinationPlaceholder')}
+                    </span>
+                    {destStopObj?.landmarkContext && (
+                      <span className="selector-sub-text">
+                        {destStopObj.landmarkContext}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="selector-arrow" aria-hidden="true">▾</span>
+              </button>
             </div>
-            <span className="selector-arrow" aria-hidden="true">▾</span>
-          </button>
+          </div>
+
+          {/* Botón flotante Swap (Invertir) */}
+          <div className="dock-swap-container">
+            <button
+              type="button"
+              className={`btn-dock-swap ${swapRotating ? 'rotating' : ''}`}
+              onClick={handleSwap}
+              aria-label={t('search.swap')}
+              title={t('search.swap')}
+            >
+              <span aria-hidden="true">⇅</span>
+            </button>
+          </div>
         </div>
 
         {/* Alerta de origen y destino idénticos */}
@@ -235,7 +294,7 @@ export function SearchView({
           </div>
         )}
 
-        {/* Estado de GPS Activo */}
+        {/* Indicador de GPS Activo */}
         {search.isUsingGpsOrigin && (
           <div className="alert-box info" role="status">
             <span aria-hidden="true">📍</span>
@@ -261,7 +320,7 @@ export function SearchView({
           </div>
         )}
 
-        {/* Fila de Acciones: Buscar y Usar GPS */}
+        {/* Botones de Acción */}
         <div className="search-actions-row">
           <button
             type="submit"
@@ -269,7 +328,7 @@ export function SearchView({
             disabled={!canSubmit}
             aria-disabled={!canSubmit}
           >
-            {t('search.button')}
+            <span>🔍 {t('search.button')}</span>
           </button>
 
           <button
@@ -303,14 +362,12 @@ export function SearchView({
           </div>
         )}
 
-        {/* Notas de Privacidad y Transparencia */}
-        <p className="privacy-note" id="origin-help">
-          {t('search.locationHint')}
+        <p className="privacy-note">
+          {t('search.locationHint')} · {t('app.privacyNote')}
         </p>
-        <p className="privacy-note">{t('app.privacyNote')}</p>
       </form>
 
-      {/* Modal Bottom-Sheet para seleccionar paradero */}
+      {/* Modal Bottom-Sheet para Selección de Paraderos */}
       {pickerTarget && (
         <div
           className="modal-overlay"
@@ -396,7 +453,7 @@ export function SearchView({
               </button>
             </div>
 
-            {/* Lista de paraderos filtrados */}
+            {/* Lista de paraderos */}
             <div className="stops-list-scroll">
               {filteredStops.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
@@ -410,7 +467,14 @@ export function SearchView({
                     className="stop-item-btn"
                     onClick={() => handleSelectStop(stop)}
                   >
-                    <span className="stop-item-name">{stop.publicName}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="stop-item-name">{stop.publicName}</span>
+                      {stop.category && (
+                        <span className="stop-item-cat-badge">
+                          {stop.category}
+                        </span>
+                      )}
+                    </div>
                     {stop.landmarkContext && (
                       <span className="stop-item-context">
                         📍 {stop.landmarkContext}
