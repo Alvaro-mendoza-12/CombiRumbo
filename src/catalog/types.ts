@@ -33,6 +33,10 @@ export interface CityConfig {
   id: string;
   name: string;
   country: string;
+  countryCode: string;
+  flag: string;
+  currency: string;
+  currencySymbol: string;
   boundingCenter: [number, number];
   bounds: {
     minLat: number;
@@ -40,7 +44,26 @@ export interface CityConfig {
     minLon: number;
     maxLon: number;
   };
+  defaultZoom: number;
   pilotStatus: 'active-pilot' | 'planned' | 'unsupported';
+  coverageSummary: string;
+  transportModes: string[];
+}
+
+/** Punto de interés geográfico o destino buscable (universidades, hospitales, etc.). */
+export interface Place {
+  id: string;
+  cityId: string;
+  name: string;
+  shortName?: string;
+  category: LandmarkCategory;
+  address?: string;
+  landmarkContext?: string;
+  lat: number;
+  lon: number;
+  aliases: string[];
+  isVerifiedTransitStop?: boolean;
+  transitStopId?: string;
 }
 
 /** Ruta/línea de transporte verificada en campo. */

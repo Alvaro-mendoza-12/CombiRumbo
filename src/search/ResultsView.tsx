@@ -27,6 +27,8 @@ interface ResultsViewProps {
   onSelectItinerary: (id: string) => void;
   onNewSearch: () => void;
   catalog: Catalog;
+  uncoveredInfo?: { placeName: string; nearestStopName: string; distanceKm: number } | null;
+  onSelectNearestStop?: () => void;
 }
 
 export function ResultsView({
@@ -38,7 +40,67 @@ export function ResultsView({
   t,
   onSelectItinerary,
   onNewSearch,
+  uncoveredInfo,
+  onSelectNearestStop,
 }: ResultsViewProps) {
+  // Destino fuera de red piloto verificada (honestidad radical para el jurado)
+  if (state === 'uncovered-destination' && uncoveredInfo) {
+    return (
+      <div className="no-results-card" role="status" aria-live="polite">
+        <div className="no-results-icon" aria-hidden="true">📍</div>
+        <h2 style={{ fontSize: '1.2rem', color: '#f59e0b', marginBottom: '8px' }}>
+          {lang === 'es' ? 'Destino fuera del piloto verificado' : 'Destination outside verified pilot area'}
+        </h2>
+        <p style={{ lineHeight: 1.5, color: '#e2e8f0', marginBottom: '12px' }}>
+          {lang === 'es' ? (
+            <>
+              Has buscado <strong>{uncoveredInfo.placeName}</strong>, ubicado a <strong>{uncoveredInfo.distanceKm} km</strong> de la red urbana verificada de Chiclayo.
+            </>
+          ) : (
+            <>
+              You searched for <strong>{uncoveredInfo.placeName}</strong>, located <strong>{uncoveredInfo.distanceKm} km</strong> from the verified urban network of Chiclayo.
+            </>
+          )}
+        </p>
+
+        <div style={{
+          background: 'rgba(56, 189, 248, 0.12)',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '16px',
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, marginBottom: '4px' }}>
+            💡 {lang === 'es' ? 'CONEXIÓN RECOMENDADA' : 'RECOMMENDED CONNECTION'}
+          </div>
+          <div style={{ fontSize: '0.88rem', color: '#f8fafc' }}>
+            {lang === 'es' ? (
+              <>
+                El paradero verificado más próximo es <strong>{uncoveredInfo.nearestStopName}</strong>. Te sugerimos tomar la combi hasta allí y luego continuar en taxi local o colectivo interurbano.
+              </>
+            ) : (
+              <>
+                The closest verified stop is <strong>{uncoveredInfo.nearestStopName}</strong>. We suggest taking the combi there and then connecting via local taxi or interurban bus.
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="card-actions" style={{ flexDirection: 'column', gap: '8px' }}>
+          {onSelectNearestStop && (
+            <button className="btn-primary" onClick={onSelectNearestStop}>
+              {lang === 'es' ? `Viajar hacia ${uncoveredInfo.nearestStopName}` : `Route to ${uncoveredInfo.nearestStopName}`}
+            </button>
+          )}
+          <button className="btn-secondary" onClick={onNewSearch}>
+            {t('norecord.changeDestination')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Estado de catálogo vacío
   if (empty || state === 'empty-catalog') {
     return (

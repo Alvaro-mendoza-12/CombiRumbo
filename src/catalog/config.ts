@@ -11,6 +11,10 @@ export const CHICLAYO_CITY_CONFIG: CityConfig = {
   id: 'chiclayo',
   name: 'Chiclayo',
   country: 'Perú',
+  countryCode: 'PE',
+  flag: '🇵🇪',
+  currency: 'PEN',
+  currencySymbol: 'S/',
   boundingCenter: [-6.7715, -79.8400],
   bounds: {
     minLat: -7.0,
@@ -18,13 +22,112 @@ export const CHICLAYO_CITY_CONFIG: CityConfig = {
     minLon: -80.0,
     maxLon: -79.2,
   },
+  defaultZoom: 13,
   pilotStatus: 'active-pilot',
+  coverageSummary: 'Piloto Activo: 100% verificado en campo (Eje Pimentel y Eje Balta/Moshoqueque).',
+  transportModes: ['Combis', 'Micros', 'Colectivos'],
 };
 
-/** Mapa de configuración de ciudades. Admite registrar ciudades futuras sin tocar la lógica. */
+export const LIMA_CITY_CONFIG: CityConfig = {
+  id: 'lima',
+  name: 'Lima',
+  country: 'Perú',
+  countryCode: 'PE',
+  flag: '🇵🇪',
+  currency: 'PEN',
+  currencySymbol: 'S/',
+  boundingCenter: [-12.0464, -77.0428],
+  bounds: {
+    minLat: -12.35,
+    maxLat: -11.75,
+    minLon: -77.25,
+    maxLon: -76.75,
+  },
+  defaultZoom: 12,
+  pilotStatus: 'planned',
+  coverageSummary: 'Próximamente: En preparación de protocolos de campo para líneas metropolitanas.',
+  transportModes: ['Metropolitano', 'Corredores', 'Combis tradicionales'],
+};
+
+export const BOGOTA_CITY_CONFIG: CityConfig = {
+  id: 'bogota',
+  name: 'Bogotá',
+  country: 'Colombia',
+  countryCode: 'CO',
+  flag: '🇨🇴',
+  currency: 'COP',
+  currencySymbol: '$',
+  boundingCenter: [4.7110, -74.0721],
+  bounds: {
+    minLat: 4.45,
+    maxLat: 4.85,
+    minLon: -74.25,
+    maxLon: -73.95,
+  },
+  defaultZoom: 12,
+  pilotStatus: 'planned',
+  coverageSummary: 'Próximamente: Fase de mapeo inicial de troncales y rutas zonales.',
+  transportModes: ['TransMilenio', 'SITP', 'Busetas'],
+};
+
+export const CDMX_CITY_CONFIG: CityConfig = {
+  id: 'cdmx',
+  name: 'Ciudad de México',
+  country: 'México',
+  countryCode: 'MX',
+  flag: '🇲🇽',
+  currency: 'MXN',
+  currencySymbol: '$',
+  boundingCenter: [19.4326, -99.1332],
+  bounds: {
+    minLat: 19.20,
+    maxLat: 19.60,
+    minLon: -99.35,
+    maxLon: -98.95,
+  },
+  defaultZoom: 12,
+  pilotStatus: 'planned',
+  coverageSummary: 'Próximamente: Protocolos para peseros, microbuses y Metrobús.',
+  transportModes: ['Metrobús', 'Microbuses / Peseros', 'Trolebús'],
+};
+
+export const BUENOSAIRES_CITY_CONFIG: CityConfig = {
+  id: 'buenosaires',
+  name: 'Buenos Aires',
+  country: 'Argentina',
+  countryCode: 'AR',
+  flag: '🇦🇷',
+  currency: 'ARS',
+  currencySymbol: '$',
+  boundingCenter: [-34.6037, -58.3816],
+  bounds: {
+    minLat: -34.72,
+    maxLat: -34.52,
+    minLon: -58.55,
+    maxLon: -58.33,
+  },
+  defaultZoom: 12,
+  pilotStatus: 'planned',
+  coverageSummary: 'Próximamente: Integración de líneas de colectivos y subte.',
+  transportModes: ['Colectivos', 'Subte', 'Trenes'],
+};
+
+/** Mapa de configuración de ciudades. */
 export const SUPPORTED_CITIES: Record<string, CityConfig> = {
   chiclayo: CHICLAYO_CITY_CONFIG,
+  lima: LIMA_CITY_CONFIG,
+  bogota: BOGOTA_CITY_CONFIG,
+  cdmx: CDMX_CITY_CONFIG,
+  buenosaires: BUENOSAIRES_CITY_CONFIG,
 };
+
+export const SUPPORTED_CITIES_LIST: CityConfig[] = [
+  CHICLAYO_CITY_CONFIG,
+  LIMA_CITY_CONFIG,
+  BOGOTA_CITY_CONFIG,
+  CDMX_CITY_CONFIG,
+  BUENOSAIRES_CITY_CONFIG,
+];
 
 export const DEFAULT_CITY_ID = 'chiclayo';
 

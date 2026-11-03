@@ -21,6 +21,7 @@ interface MapViewProps {
   catalog?: Catalog;
   height?: string;
   onSelectStop?: (stop: Stop, role: 'origin' | 'destination') => void;
+  centerOverride?: [number, number] | null;
 }
 
 // Auto-ajuste de límites cuando cambian los puntos
@@ -31,6 +32,17 @@ function MapBoundsUpdater({ bounds }: { bounds: L.LatLngBounds | null }) {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
   }, [bounds, map]);
+  return null;
+}
+
+// Centrado suave cuando se pide centrar o ubicar
+function MapCenterUpdater({ center }: { center?: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, 14, { duration: 1.2 });
+    }
+  }, [center, map]);
   return null;
 }
 
@@ -98,6 +110,7 @@ export function MapView({
   catalog,
   height = '100%',
   onSelectStop,
+  centerOverride,
 }: MapViewProps) {
   const { polylines, markers, bounds, defaultCenter, defaultZoom } = useMemo(() => {
     const lines: RouteSegmentVisual[] = [];
@@ -316,6 +329,9 @@ export function MapView({
 
         {/* Auto-ajuste de límites */}
         <MapBoundsUpdater bounds={bounds} />
+
+        {/* Recentrado manual / suave */}
+        <MapCenterUpdater center={centerOverride} />
 
         {/* Polylines de rutas */}
         {polylines.map((poly, idx) => (

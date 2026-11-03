@@ -1,18 +1,23 @@
 /**
- * App principal de CombiRumbo Chiclayo.
- * Diseño Transit Hub / Citymapper:
- * - Mapa interactivo permanente en pantalla completa / split view.
- * - Sidebar flotante de transporte con búsqueda conectada, resultados y pasos detallados.
- * - Selección interactiva de paraderos tocando directamente en el mapa.
+ * CombiRumbo - Guía Verificada de Transporte Público
+ * Arquitectura Map-First internacional (Google Maps / Citymapper UX)
+ *
+ * Características principales:
+ * - Mapa full-canvas permanente en 100% de pantalla con Leaflet
+ * - Floating Transit Hub: Tarjeta flotante en escritorio, Bottom Sheet nativo en móvil
+ * - Soporte multi-ciudad internacional (Chiclayo activo, Lima, Bogotá, CDMX, BsAs en roadmap)
+ * - Geocodificador híbrido y directorio exhaustivo de destinos/universidades de Chiclayo
+ * - Asistente IA de Transporte (OpenRouter) contextualizado con datos verificados
+ * - Protocolo de honestidad radical: sin inventar rutas ni tarifas
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useI18n } from './accessibility/i18n';
 import { useOnlineStatus } from './pwa/offline';
-import { loadCatalog } from './catalog/catalog';
-import { isCatalogEmpty } from './catalog/catalog';
+import { loadCatalog, isCatalogEmpty } from './catalog/catalog';
 import { saveCatalogToCache, getCachedSyncDate, loadCachedCatalog } from './pwa/cache';
-import { EMPTY_CATALOG, type Catalog, type Stop } from './catalog/types';
+import { EMPTY_CATALOG, type Catalog, type Stop, type CityConfig } from './catalog/types';
+import { CHICLAYO_CITY_CONFIG, SUPPORTED_CITIES_LIST } from './catalog/config';
 import { useSearch } from './search/searchModel';
 import { SearchView } from './search/SearchView';
 import { ResultsView } from './search/ResultsView';
@@ -30,9 +35,18 @@ export default function App() {
   const [syncDate, setSyncDate] = useState<string | null>(null);
   const [view, setView] = useState<View>('search');
   const [selectedItineraryId, setSelectedItineraryId] = useState<string | null>(null);
-  const [mobileMapExpanded, setMobileMapExpanded] = useState(false);
 
-  // Cargar catálogo al iniciar
+  // Estado de ciudad activa (Chiclayo piloto único activo)
+  const [activeCity, setActiveCity] = useState<CityConfig>(CHICLAYO_CITY_CONFIG);
+  const [showCitySelector, setShowCitySelector] = useState(false);
+
+  // Estado para centrado dinámico del mapa
+  const [mapCenterOverride, setMapCenterOverride] = useState<[number, number] | null>(null);
+
+  // En móvil: colapsar a vista reducida o desplegar a pantalla completa
+  const [mobileSheetCollapsed, setMobileSheetCollapsed] = useState(false);
+
+  // Cargar catálogo de rutas verificadas
   useEffect(() => {
     async function loadCatalogData() {
       try {
@@ -57,7 +71,7 @@ export default function App() {
 
   const search = useSearch(catalog ?? EMPTY_CATALOG);
 
-  // Sincronizar fecha de cache cuando hay catálogo
+  // Sincronizar fecha de caché cuando hay catálogo
   const effectiveSyncDate = useMemo(() => {
     return online ? syncDate : getCachedSyncDate();
   }, [online, syncDate]);
@@ -66,7 +80,7 @@ export default function App() {
     (fromId: string, toId: string) => {
       search.search(fromId, toId);
       setView('results');
-      setMobileMapExpanded(false);
+      setMobileSheetCollapsed(false);
     },
     [search]
   );
@@ -74,7 +88,7 @@ export default function App() {
   const handleSelectItinerary = useCallback((itineraryId: string) => {
     setSelectedItineraryId(itineraryId);
     setView('detail');
-    setMobileMapExpanded(false);
+    setMobileSheetCollapsed(false);
   }, []);
 
   const handleBack = useCallback(() => {
@@ -87,25 +101,50 @@ export default function App() {
     setView('search');
   }, [search]);
 
-  // Selección directa desde los pines del mapa
+  // Selección directa desde los pines del mapa interactivo
   const handleSelectStopFromMap = useCallback((stop: Stop, role: 'origin' | 'destination') => {
     if (role === 'origin') {
       search.selectOrigin(stop);
     } else {
       search.selectDestination(stop);
     }
-    // Si estamos en resultados o detalle y el usuario toca un pin en el mapa, regresar a búsqueda
     if (view !== 'search') {
       setView('search');
     }
   }, [search, view]);
 
+  // Botón Recentrar en la Ciudad
+  const handleRecenterCity = useCallback(() => {
+    setMapCenterOverride([...activeCity.boundingCenter]);
+    // Limpiar el override después de 1.5s para permitir libre navegación
+    setTimeout(() => setMapCenterOverride(null), 1500);
+  }, [activeCity]);
+
+  // Manejo de cambio de ciudad internacional
+  const handleSelectCity = useCallback((city: CityConfig) => {
+    setActiveCity(city);
+    setShowCitySelector(false);
+    setMapCenterOverride([...city.boundingCenter]);
+    setTimeout(() => setMapCenterOverride(null), 1500);
+  }, []);
+
   if (!catalog) {
     return (
-      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#f59e0b', fontSize: '1.2rem', fontWeight: 700 }}>
-          🚐 Cargando red verificada de Chiclayo...
-        </p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        width: '100vw',
+        background: '#090e17',
+        color: '#f59e0b',
+        gap: '12px'
+      }}>
+        <div style={{ fontSize: '2.5rem', animation: 'bounce 1s infinite' }}>🚐</div>
+        <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+          CombiRumbo · Cargando red verificada de transporte...
+        </div>
       </div>
     );
   }
@@ -116,44 +155,79 @@ export default function App() {
 
   return (
     <>
-      <a href="#main-content" className="skip-link">Saltar al contenido</a>
+      <a href="#main-content" className="skip-link">Saltar al contenido de rutas</a>
 
-      <div className={`app-shell ${mobileMapExpanded ? 'map-expanded' : ''}`}>
-        {/* VIEWPORT DEL MAPA PERMANENTE (Full-Screen o Split) */}
-        <main className="map-viewport">
-          <button
-            type="button"
-            className="mobile-view-toggle-btn"
-            onClick={() => setMobileMapExpanded(!mobileMapExpanded)}
-            aria-label={mobileMapExpanded ? 'Ver panel de rutas' : 'Ver mapa en pantalla completa'}
-          >
-            {mobileMapExpanded ? '📋 Ver Rutas' : '🗺️ Mapa Completo'}
-          </button>
-
+      <div className="app-container">
+        {/* MAPA FULL-CANVAS LAYER (100% de la pantalla) */}
+        <div className="map-canvas-layer">
           <MapView
             catalog={catalog}
             itinerary={view === 'search' ? null : activeItinerary}
             onSelectStop={handleSelectStopFromMap}
+            centerOverride={mapCenterOverride}
             height="100%"
           />
-        </main>
+        </div>
 
-        {/* SIDEBAR FLOTANTE DE TRANSPORTE (Citymapper Style) */}
-        <aside className="transit-sidebar" id="main-content">
-          {/* Header Superior */}
-          <header className="app-header">
-            <div className="brand-row">
-              <div className="brand-icon" aria-hidden="true">🚐</div>
-              <div>
-                <h1 className="brand-title">
-                  CombiRumbo
-                  <span className="brand-city-badge">Chiclayo</span>
-                </h1>
-                <div className="brand-subtitle">{t('app.tagline')}</div>
+        {/* CONTROLES FLOTANTES EN EL MAPA (Inferior derecha) */}
+        <div className="floating-map-controls" role="toolbar" aria-label="Controles del mapa">
+          <button
+            type="button"
+            className="map-control-btn"
+            onClick={handleRecenterCity}
+            title={`Centrar mapa en ${activeCity.name}`}
+            aria-label={`Centrar mapa en ${activeCity.name}`}
+          >
+            🎯
+          </button>
+          <button
+            type="button"
+            className="map-control-btn"
+            onClick={() => setShowCitySelector(true)}
+            title="Seleccionar ciudad / Red de transporte"
+            aria-label="Seleccionar ciudad / Red de transporte"
+          >
+            🌐
+          </button>
+        </div>
+
+        {/* PANEL FLOTANTE DE TRANSPORTE (Citymapper / Google Maps UX) */}
+        <aside
+          className={`floating-transit-hub ${mobileSheetCollapsed ? 'sheet-peek' : ''}`}
+          id="main-content"
+          aria-label="Planificador de viajes CombiRumbo"
+        >
+          {/* Handle de arrastre para móviles */}
+          <div
+            className="sheet-drag-handle-bar"
+            onClick={() => setMobileSheetCollapsed(!mobileSheetCollapsed)}
+            title="Deslizar panel de transporte"
+            aria-hidden="true"
+          />
+
+          {/* Encabezado Principal del Hub */}
+          <header className="hub-header">
+            <div className="brand-badge-group">
+              <div className="brand-icon-box" aria-hidden="true">🚐</div>
+              <div className="brand-text-column">
+                <div className="brand-title-row">
+                  <span className="brand-name">CombiRumbo</span>
+                  <button
+                    type="button"
+                    className="city-selector-btn"
+                    onClick={() => setShowCitySelector(true)}
+                    title="Cambiar ciudad"
+                  >
+                    <span>{activeCity.flag} {activeCity.name}</span>
+                    <span style={{ fontSize: '0.65rem' }}>▼</span>
+                  </button>
+                </div>
+                <span className="brand-tagline">{t('app.tagline')}</span>
               </div>
             </div>
 
-            <div className="header-controls">
+            <div className="hub-controls-row">
+              {/* Segmented control de idioma */}
               <div className="lang-segmented" role="group" aria-label="Idioma">
                 <button
                   type="button"
@@ -161,7 +235,7 @@ export default function App() {
                   onClick={() => setLang('es')}
                   aria-pressed={lang === 'es'}
                 >
-                  {t('lang.es')}
+                  ES
                 </button>
                 <button
                   type="button"
@@ -169,11 +243,38 @@ export default function App() {
                   onClick={() => setLang('en')}
                   aria-pressed={lang === 'en'}
                 >
-                  {t('lang.en')}
+                  EN
                 </button>
               </div>
             </div>
           </header>
+
+          {/* Banner de Ciudad Planificada (si no es Chiclayo) */}
+          {activeCity.pilotStatus !== 'active-pilot' && (
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.14)',
+              borderBottom: '1px solid rgba(245, 158, 11, 0.35)',
+              padding: '10px 14px',
+              fontSize: '0.8rem',
+              color: '#fef08a',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                <span>🚧 {activeCity.name} ({activeCity.country}): Red en preparación</span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>{activeCity.coverageSummary}</div>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ fontSize: '0.75rem', padding: '4px 10px', alignSelf: 'flex-start', minHeight: '30px' }}
+                onClick={() => handleSelectCity(CHICLAYO_CITY_CONFIG)}
+              >
+                ← Volver al piloto activo de Chiclayo
+              </button>
+            </div>
+          )}
 
           {/* Banner Offline */}
           {!online && (
@@ -182,7 +283,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Contenido con Scroll de la Barra Lateral */}
+          {/* Área con scroll del Hub */}
           <div className="sidebar-scroll-content">
             {view === 'search' && (
               <SearchView
@@ -207,6 +308,12 @@ export default function App() {
                 onSelectItinerary={handleSelectItinerary}
                 onNewSearch={handleNewSearch}
                 catalog={catalog}
+                uncoveredInfo={search.uncoveredInfo}
+                onSelectNearestStop={() => {
+                  if (search.originStopId && search.destinationStopId) {
+                    search.search(search.originStopId, search.destinationStopId);
+                  }
+                }}
               />
             )}
 
@@ -231,7 +338,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Pie / Transparencia */}
+          {/* Pie de transparencia y metodología */}
           <footer className="sidebar-footer">
             <details>
               <summary>{t('disclaimer.title')}</summary>
@@ -249,6 +356,82 @@ export default function App() {
             </details>
           </footer>
         </aside>
+
+        {/* MODAL SELECTOR DE CIUDAD INTERNACIONAL */}
+        {showCitySelector && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => setShowCitySelector(false)}
+          >
+            <div className="city-modal-box" onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
+                  🌐 {lang === 'es' ? 'Ciudades y Redes de Transporte' : 'Cities & Transit Networks'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCitySelector(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    fontSize: '1.2rem',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Cerrar modal de ciudades"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                {lang === 'es'
+                  ? 'CombiRumbo está diseñado para expandirse a cualquier ciudad con transporte informal o tradicional mediante datos verificados en campo.'
+                  : 'CombiRumbo is built to scale across cities with informal or traditional transit using verified field observations.'}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {SUPPORTED_CITIES_LIST.map((city) => {
+                  const isActive = city.id === activeCity.id;
+                  const isPilot = city.pilotStatus === 'active-pilot';
+                  return (
+                    <button
+                      key={city.id}
+                      type="button"
+                      className={`city-option-card ${isActive ? 'active' : ''}`}
+                      onClick={() => handleSelectCity(city)}
+                    >
+                      <div className="city-info-col">
+                        <div className="city-title-row">
+                          <span style={{ fontSize: '1.3rem' }}>{city.flag}</span>
+                          <span>{city.name}</span>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>({city.country})</span>
+                        </div>
+                        <div className="city-meta-text">
+                          {city.transportModes.join(' · ')} · Moneda: {city.currency} ({city.currencySymbol})
+                        </div>
+                      </div>
+
+                      <span className={`city-status-badge ${city.pilotStatus}`}>
+                        {isPilot ? '✅ EN VIVO' : '🚧 PRÓXIMAMENTE'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <VisuallyHidden>

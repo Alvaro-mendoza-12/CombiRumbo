@@ -5,11 +5,11 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { Catalog, Stop, LandmarkCategory } from '@/catalog/types';
+import type { Catalog, Stop, LandmarkCategory, Place } from '@/catalog/types';
 import type { Itinerary } from '@/routing/format';
 import { findItineraries } from '@/routing/router';
 import { isCatalogEmpty } from '@/catalog/catalog';
-import { buildGraph } from '@/routing/graph';
+import { buildGraph, findNearestStop } from '@/routing/graph';
 import { haversineMeters } from '@/accessibility/a11y';
 
 export type SearchState =
@@ -18,7 +18,14 @@ export type SearchState =
   | 'results'
   | 'no-results'
   | 'same-location'
+  | 'uncovered-destination'
   | 'empty-catalog';
+
+export interface UncoveredInfo {
+  placeName: string;
+  nearestStopName: string;
+  distanceKm: number;
+}
 
 export interface UserCoords {
   lat: number;
@@ -37,6 +44,7 @@ export function useSearch(catalog: Catalog) {
   const [selectedCategory, setSelectedCategory] = useState<LandmarkCategory | 'all'>('all');
   const [state, setState] = useState<SearchState>('idle');
   const [results, setResults] = useState<Itinerary[]>([]);
+  const [uncoveredInfo, setUncoveredInfo] = useState<UncoveredInfo | null>(null);
 
   const graph = useMemo(() => buildGraph(catalog), [catalog]);
 
@@ -91,6 +99,95 @@ export function useSearch(catalog: Catalog) {
     }
     setState('idle');
   }, [originStopId]);
+
+  // Selección de destino mediante Place (POI o geocodificado)
+  const selectDestinationPlace = useCallback((place: Place | null) => {
+    if (!place) {
+      setDestinationStopId(null);
+      setDestinationQuery('');
+      setUncoveredInfo(null);
+      return;
+    }
+
+    // 1. Si el lugar ya es un paradero verificado directo
+    if (place.transitStopId) {
+      setDestinationStopId(place.transitStopId);
+      setDestinationQuery(place.shortName || place.name);
+      setUncoveredInfo(null);
+      if (originStopId === place.transitStopId) {
+        setOriginStopId(null);
+        setOriginQuery('');
+      }
+      setState('idle');
+      return;
+    }
+
+    // 2. Si es un POI/dirección (ej. USS, USAT, Real Plaza, UNPRG)
+    const nearest = findNearestStop(graph, place.lat, place.lon);
+    if (!nearest) {
+      setDestinationQuery(place.name);
+      setState('no-results');
+      return;
+    }
+
+    const distMeters = haversineMeters(place.lat, place.lon, nearest.lat, nearest.lon);
+
+    // Si el paradero más cercano está a más de 3.0 km (ej. UNPRG en Lambayeque), es zona no cubierta
+    if (distMeters > 3000) {
+      setDestinationQuery(place.shortName || place.name);
+      setDestinationStopId(nearest.id);
+      setUncoveredInfo({
+        placeName: place.name,
+        nearestStopName: nearest.publicName,
+        distanceKm: Number((distMeters / 1000).toFixed(1)),
+      });
+      setState('uncovered-destination');
+      return;
+    }
+
+    // Si está a distancia caminable del paradero verificado (ej. USS a 850m de USMP, o Real Plaza)
+    setDestinationStopId(nearest.id);
+    setDestinationQuery(place.shortName || place.name);
+    setUncoveredInfo(null);
+    if (originStopId === nearest.id) {
+      setOriginStopId(null);
+      setOriginQuery('');
+    }
+    setState('idle');
+  }, [graph, originStopId]);
+
+  // Selección de origen mediante Place (POI o geocodificado)
+  const selectOriginPlace = useCallback((place: Place | null) => {
+    if (!place) {
+      setOriginStopId(null);
+      setOriginQuery('');
+      return;
+    }
+
+    if (place.transitStopId) {
+      setOriginStopId(place.transitStopId);
+      setOriginQuery(place.shortName || place.name);
+      if (destinationStopId === place.transitStopId) {
+        setDestinationStopId(null);
+        setDestinationQuery('');
+      }
+      setState('idle');
+      return;
+    }
+
+    const nearest = findNearestStop(graph, place.lat, place.lon);
+    if (nearest) {
+      setOriginStopId(nearest.id);
+      setOriginQuery(place.shortName || place.name);
+      setUserCoords({ lat: place.lat, lon: place.lon, nearestStopId: nearest.id });
+      setIsUsingGpsOrigin(true);
+      if (destinationStopId === nearest.id) {
+        setDestinationStopId(null);
+        setDestinationQuery('');
+      }
+    }
+    setState('idle');
+  }, [graph, destinationStopId]);
 
   // Intercambiar origen y destino (swap ⇄)
   const swapStops = useCallback(() => {
@@ -203,6 +300,9 @@ export function useSearch(catalog: Catalog) {
     setDestinationStopId,
     selectOrigin,
     selectDestination,
+    selectOriginPlace,
+    selectDestinationPlace,
+    uncoveredInfo,
     availableOrigins,
     availableDestinations,
     allStops,
