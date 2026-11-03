@@ -10,3 +10,5 @@ Thumbs.db
 *.tsbuildinfo
 
 # Do not ignore .kiro; the hackathon requires these project files in the GitHub repo.
+
+.vercel
